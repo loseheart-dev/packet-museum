@@ -1,89 +1,385 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-base="dark">
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>数据包博物馆 · 深夜终端</title>
 <style>
-  :root{color-scheme:dark;--ink:#efe7cd;--dim:#b8b7a5;--line:#41473e;--green:#a4d3a0;--amber:#f3bb70;--panel:#191c17;--mono:ui-monospace,Menlo,Consolas,monospace}
-  *{box-sizing:border-box}body{margin:0;background:#111410;color:var(--ink);font:15px/1.55 system-ui,sans-serif}a{color:inherit}a:focus-visible{outline:2px solid var(--amber);outline-offset:4px}h1,h2,h3,p,figure{margin:0}code,.mono{font-family:var(--mono)}svg{display:block;width:100%;height:auto}
-  .frame{width:min(1088px,calc(100% - 80px));margin:auto}.system{border-bottom:1px solid var(--line);background:#171b15}.system .frame,.record-bar,.lab-head,.footer{display:flex;justify-content:space-between;align-items:center;gap:12px}.system .frame{min-height:58px}.system a,.footer a{text-decoration:none;color:var(--amber)}.system b{font:700 13px var(--mono)}.system b::before{content:"▣";color:var(--green);margin-right:9px}
-  .inventory{padding:33px 0 31px}.index-title{display:flex;align-items:end;justify-content:space-between;gap:14px;margin:0 0 19px}.index-title h1{font:800 53px/1.07 system-ui,sans-serif}.index-title p{color:var(--green);font:12px var(--mono);margin-bottom:8px}.serial{text-align:right;color:var(--dim);font:12px/1.5 var(--mono)}.serial b{display:block;color:var(--amber);font-size:26px}
-  .record-bar{background:#252b22;padding:8px 12px;color:var(--green);font:700 12px var(--mono);border-top:1px solid #63745e}.directory{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:25px;padding:0;margin:0;list-style:none}.entry{display:grid;grid-template-columns:2.5ch minmax(8ch,14ch) minmax(0,1fr) 1.5ch;align-items:center;gap:10px;min-height:46px;padding:6px 9px;border-bottom:1px solid var(--line);text-decoration:none}.entry b{font:700 15px/1.25 var(--mono)}.entry small{color:var(--dim);font-size:12px}.entry span{font:12px var(--mono);color:var(--green)}.entry.hot{background:#3a2b18;box-shadow:inset 2px 0 var(--amber)}.entry.hot :is(b,span){color:var(--amber)}.entry.hot:hover{background:#4b361c}
-  .lab{border-block:1px solid var(--line);background:#161a15;padding:22px 0 30px}.lab-head{align-items:end;margin-bottom:14px}.lab-head p{color:var(--green);font:700 12px var(--mono);margin-bottom:5px}.lab-head h2{font-size:33px;line-height:1.15}.badge{color:var(--amber);font:700 12px var(--mono);padding:7px 9px;border:1px solid #98744c}
-  .bench{border:1px solid #59614f;background:#151912}.plate{background:#20261e;display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line);padding:9px 12px;font:700 12px var(--mono);color:var(--green)}.topology{background:repeating-linear-gradient(0deg,#b7c09b0b 0 1px,transparent 1px 5px),#191e17}.diagram{max-width:845px;margin:auto;padding:0 12px}.devices{display:flex;justify-content:space-between;gap:14px;width:min(705px,95%);margin:auto;padding:0 8px 12px;color:var(--ink);text-align:center}.devices code{display:block;font-size:11px;color:var(--dim)}
-  .controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:9px 12px;border-top:1px solid var(--line)}.controls button{font:700 12px var(--mono);background:#292c24;border:1px solid #555b4c;border-radius:2px;color:var(--ink);padding:7px 9px}.controls .primary{background:var(--amber);border-color:var(--amber);color:#281d0e}.controls small{margin-left:auto;color:var(--dim);font:12px var(--mono)}
-  .readout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);border-top:1px solid #59614f}.notes{border-right:1px solid var(--line)}.narrative,.bytes{padding:13px}.readout h3{font-size:16px}.readout p{font-size:13px;margin:6px 0;color:var(--dim)}.timeline{margin:10px 0 0;padding:0;list-style:none;font:12px/1.6 var(--mono)}.timeline li{border-top:1px solid var(--line);padding:6px 0;color:var(--dim)}.timeline [aria-current]{color:var(--amber)}
-  .byte-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:9px}.hex,.map{margin:0;font:12px/1.7 var(--mono);min-width:0}.hex{display:grid;grid-template-columns:3ch 1fr;gap:1px 6px;padding:8px;background:#0e130e;border-left:2px solid #689065;color:var(--green);align-content:start}.hex i{color:var(--dim);font-style:normal}.hex span{overflow-wrap:anywhere}.hex mark{background:var(--amber);color:#291e11}.map{list-style:none;padding:0}.map li{border-bottom:1px solid var(--line);padding:1px 4px;overflow-wrap:anywhere}.map .highlight{color:var(--amber);background:#302516}.footer{padding:15px 0 22px;color:var(--dim);font:12px var(--mono)}
-  @media(max-width:930px){.directory{column-gap:10px}.entry{grid-template-columns:2ch minmax(8ch,12ch) minmax(0,1fr) 1.5ch}.byte-grid{grid-template-columns:1fr}}
-  @media(max-width:620px){.frame{width:calc(100% - 28px)}.inventory{padding:26px 0 24px}.index-title h1{font-size:39px}.serial b{font-size:20px}.directory,.readout{grid-template-columns:1fr}.entry{min-height:43px}.lab-head{align-items:start;flex-direction:column}.lab-head h2{font-size:27px}.diagram{padding-inline:2px}.devices{width:100%;font-size:13px}.notes{border-right:0;border-bottom:1px solid var(--line)}.hex,.map{font-size:13px}}
+:root:is([data-base=light]:not([data-theme]),[data-theme=light]){color-scheme:light;--bg:#eee7d8;--panel:#fbf6e9;--bar:#f0e7d4;--ink:#252a20;--muted:#575e4f;--line:#b6ab92;--accent:#285840;--accent-ink:#fff7df;--selected:#e1e8ce;--stage:#eee9d8;--grid:#6867511c;--route:#a45527;--path:#837e68;--phosphor:#c7ec8a;--tube:#435b37;--screen:#162b1c;--amber:#7e4b1b;--shadow:#5c4d3126;--focus:#a04723}
+:root:is([data-base=dark]:not([data-theme]),[data-theme=dark]){color-scheme:dark;--bg:#111512;--panel:#191e18;--bar:#242b21;--ink:#f0ead6;--muted:#b6bdac;--line:#424c40;--accent:#accea0;--accent-ink:#192617;--selected:#333625;--stage:#161d18;--grid:#82977019;--route:#ddad65;--path:#707d65;--phosphor:#ffd585;--tube:#583920;--screen:#251d12;--amber:#f3bb70;--shadow:#050805;--focus:#f3bb70}
+:root{--mono:ui-monospace,Menlo,Consolas,monospace;--ether:#b86a49;--ip:#6c9b8c;--udp:#be9b52;--dns:#7d7eaf}
+*{box-sizing:border-box}body{margin:0;color:var(--ink);background:var(--bg);font:13px/1.55 system-ui,sans-serif}button,input,select{font:inherit;color:inherit}button,select{cursor:pointer}button:disabled{cursor:default;opacity:.43}button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}button{border:1px solid var(--line);background:var(--panel);border-radius:3px;padding:4px 8px}button:hover:not(:disabled){background:var(--selected)}button[aria-pressed=true],.primary,.primary:hover:not(:disabled){background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}h1,h2,h3,p,dl,dd,ol,ul,figure{margin:0}h2{font-size:14px}h3{font-size:15px}code,.mono{font-family:var(--mono)}[hidden]{display:none!important}
+.app{height:100dvh;display:grid;grid-template-rows:auto minmax(0,1fr)}.top{min-height:61px;padding:8px 13px;display:flex;align-items:center;gap:15px;border-bottom:1px solid var(--line);background:var(--bar)}.brand{display:flex;gap:8px;align-items:center;margin-right:auto;white-space:nowrap}.brand-mark{display:grid;place-items:center;width:35px;height:35px;border:1px solid var(--accent);color:var(--accent);font:800 13px var(--mono)}h1{font-size:16px;line-height:1.2}.brand small{color:var(--muted);font:10px var(--mono)}.osi{display:flex;align-items:center;gap:4px;white-space:nowrap;font:12px var(--mono)}.osi span{margin-right:4px;color:var(--muted)}.osi button{min-width:25px;padding:3px}.search{width:min(23vw,232px);min-width:0;padding:5px 8px;background:var(--panel);border:1px solid var(--line);border-radius:3px}.tools{display:flex;gap:5px;white-space:nowrap}.drawer-open{display:none}
+.grid{min-height:0;display:grid;grid-template-columns:clamp(217px,19vw,290px) minmax(0,1fr) clamp(205px,18vw,270px);grid-template-rows:minmax(0,1fr) min(25.5vh,235px);grid-template-areas:"side stage knowledge" "side flow flow";gap:8px;padding:8px 10px 10px}.panel{min-width:0;min-height:0;border:1px solid var(--line);background:var(--panel);box-shadow:0 1px 2px var(--shadow)}.side{grid-area:side;overflow:auto}.stage{grid-area:stage;display:flex;flex-direction:column}.knowledge{grid-area:knowledge;overflow:auto}.flow{grid-area:flow;display:flex;flex-direction:column}.wide .grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"stage" "flow"}.wide .side,.wide .knowledge{display:none}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:7px;min-height:36px;padding:6px 10px;background:var(--bar);border-bottom:1px solid var(--line)}.panel-head small{color:var(--muted);font:11px var(--mono)}.catalog{padding:8px 7px}.filter{display:flex;flex-wrap:wrap;gap:3px;padding:0 0 7px}.filter button{font-size:11px;padding:3px 4px}.courses,.steps{list-style:none;padding:0}.course{border-top:1px solid var(--line)}.course-title{display:flex;align-items:center;gap:8px;min-height:43px;padding:5px 7px;width:100%;text-align:left;background:none;border:0;border-radius:0}.course-title b{font:750 13px var(--mono);display:block}.course-title small{display:block;font-size:11px;color:var(--muted)}.course-title .course-symbol{font:12px var(--mono);color:var(--muted)}.course-title .chevron{margin-left:auto}.course-title.dns{border-left:3px solid var(--accent);padding-left:4px;background:var(--selected)}.steps{padding:4px 2px 7px 19px}.steps button{width:100%;display:flex;text-align:left;align-items:center;gap:7px;border:0;background:none;font-size:12px;padding:4px}.steps button[aria-current=step]{color:var(--accent);background:var(--selected);font-weight:750}.step-num{display:grid;place-items:center;border:1px solid var(--line);border-radius:50%;min-width:19px;height:19px;font:11px var(--mono)}.steps [aria-current] .step-num{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}.empty{padding:8px;color:var(--muted)}
+.views{display:flex;gap:3px;white-space:nowrap}.views button{padding:2px 7px}.stage-status{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.canvas{flex:1;min-height:0;background:linear-gradient(0deg,var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px),var(--stage);background-size:21px 21px;display:grid;place-items:center}.canvas svg{display:block;width:100%;height:100%;min-height:0}.node{color:var(--ink)}.node text{fill:currentColor;text-anchor:middle;font-size:18px;font-weight:750}.node .address{font:13px var(--mono);fill:var(--muted)}.node.active text{fill:var(--accent)}.wire{fill:none;stroke:var(--path);stroke-width:1.7;stroke-dasharray:4 6}.wire.active{stroke:var(--route);stroke-width:3;stroke-dasharray:none}.ground{fill:var(--shadow)}.packet{cursor:pointer}.packet rect{fill:var(--accent);stroke:var(--panel);stroke-width:2}.packet text{fill:var(--accent-ink);font:700 13px var(--mono);text-anchor:middle;pointer-events:none}.packet:focus-visible rect{stroke:var(--focus);stroke-width:4}.legend{padding:5px 10px;border-top:1px solid var(--line);font:11px var(--mono);color:var(--muted)}.legend b{color:var(--route)}
+.knowledge section{padding:10px 11px;border-bottom:1px solid var(--line)}.knowledge h3{margin-bottom:4px}.knowledge p{color:var(--muted)}.facts{margin-top:7px}.facts div{display:grid;grid-template-columns:58px 1fr;gap:4px;border-top:1px solid var(--line);padding:4px 0;font-size:12px}.facts dt{font-weight:700}.facts dd{color:var(--muted)}.stamp{display:inline-block;margin-bottom:5px;color:var(--accent);font:750 11px var(--mono)}#step-route{margin-top:8px;font:11px var(--mono);color:var(--amber)}
+.playback{display:flex;flex-wrap:wrap;align-items:center;gap:4px}.playback button{white-space:nowrap;font-size:12px;min-height:27px}.playback select{height:27px;border:1px solid var(--line);border-radius:3px;background:var(--panel);font:12px var(--mono)}.log{overflow:auto;flex:1}table{width:100%;border-collapse:collapse;text-align:left;font:11px var(--mono);white-space:nowrap}th,td{padding:3px 6px;border-bottom:1px solid var(--line)}thead{position:sticky;top:0;background:var(--panel);z-index:1}tbody tr{cursor:pointer}tbody tr:hover,tbody tr.current{background:var(--selected)}tbody tr.current td:first-child{box-shadow:inset 3px 0 var(--accent)}tbody tr.future{color:var(--muted)}tbody button{border:0;background:none;padding:0;min-width:19px;font-family:var(--mono)}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ip);margin-right:5px}.dot.referral{background:var(--udp)}.dot.answer{background:var(--dns)}
+.packet-view{flex:1;min-height:0;display:flex;flex-direction:column}.frame-head{padding:6px 10px;font:11px var(--mono);color:var(--muted)}.layers{display:flex;gap:3px;padding:0 9px 7px}.layers button{min-width:0;text-align:left;padding:3px 3px;font:11px var(--mono);border:0;border-top:4px solid var(--layer);background:var(--bar);overflow:hidden}.layers button:hover{background:var(--selected)}.inspector{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);flex:1;min-height:0;border-top:1px solid var(--line)}.fields{overflow:auto;border-right:1px solid var(--line);min-width:0}.fields h3{padding:4px 8px;background:var(--bar);border-left:4px solid var(--layer);font:750 11px var(--mono)}.field{display:grid;grid-template-columns:minmax(68px,.8fr) minmax(0,1fr);gap:1px 5px;text-align:left;border:0;border-radius:0;width:100%;padding:4px 8px;font-size:11px}.field code{overflow-wrap:anywhere;color:var(--accent)}.field small{font-size:10px;color:var(--muted);grid-column:2}.field.selected{background:var(--selected);box-shadow:inset 3px 0 var(--accent)}.dump{overflow:auto;color:var(--accent);padding:7px 5px;font:clamp(9px,.83vw,12px)/1.7 var(--mono)}.dump-line{display:grid;grid-template-columns:4ch 25ch 8ch;gap:.5ch;min-width:max-content}.offset{color:var(--muted)}.byte{display:inline-block;text-align:center;width:3ch}.ascii .byte{width:1ch}.byte.selected{background:var(--accent);color:var(--accent-ink)}
+dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line);padding:0;width:min(330px,calc(100vw - 30px));max-height:88dvh;margin:8px auto auto 8px}dialog::backdrop{background:#0009}
+.log{position:relative}.osi .course-level{border-color:var(--accent);color:var(--accent);font-weight:750}.dump{font-size:10px}.layers b,.layers small{display:block;white-space:nowrap}.layers small{color:var(--muted);font-size:10px}
+@media(max-width:1050px){.top{gap:8px}.grid{grid-template-columns:202px minmax(0,1fr) 185px}.search{width:17vw}.osi span{display:none}}
+@media(max-width:760px){.app{height:auto}.top{flex-wrap:wrap;gap:5px 8px;padding:7px 9px}.brand{flex:1}.brand-mark{width:28px;height:29px}.brand small{font-size:9px}h1{font-size:14px}.search{width:119px;font-size:12px}.osi{order:3;flex:1}.osi button{min-width:23px;padding:2px}.tools{order:4}.tools button{font-size:11px;padding:3px 5px}.drawer-open{display:inline-block}.grid,.wide .grid{grid-template-columns:minmax(0,1fr);grid-template-rows:auto;grid-template-areas:"stage" "knowledge" "flow";gap:7px;padding:7px}.side{display:none}.canvas{height:274px;flex:none}.knowledge section{padding:7px 9px}.knowledge .facts{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}.flow{min-height:215px}.log{max-height:231px}.playback{justify-content:flex-end}.playback button{font-size:11px;padding:3px 5px}.flow .panel-head{align-items:start}.flow h2{white-space:nowrap}.packet-view{min-height:0}.inspector{height:291px;flex:none;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.dump{font-size:9px}.field{grid-template-columns:1fr}.field small{grid-column:1}.layers button{font-size:10px}.stage-status{font-size:10px!important}.wide .knowledge{display:none}}
+@media(max-width:760px){.dump-line{grid-template-columns:4ch 17ch 5ch}.node text{font-size:23px}.node .address{font-size:16px}}
 </style>
-<header class="system" id="directory"><div class="frame"><b>PACKET MUSEUM / 终端 01</b><a class="mono" href="#trace">进入 DNS ↓</a></div></header>
-<main>
-  <section class="inventory frame" aria-labelledby="b-catalog">
-    <div class="index-title"><div><p>馆藏索引 / PROTOCOL INDEX</p><h1 id="b-catalog">网络协议</h1></div><div class="serial"><b>08</b>条实验记录</div></div>
-    <div class="record-bar"><span>编号　协议</span><span>实验记录</span></div>
-    <ol class="directory">
-      <li><div class="entry"><span>01</span><b>Ethernet / ARP</b><small>同一局域网的第一帧</small></div></li>
-      <li><div class="entry"><span>02</span><b>IPv4</b><small>追踪每跳的 TTL</small></div></li>
-      <li><div class="entry"><span>03</span><b>TCP</b><small>握手、确认与关闭</small></div></li>
-      <li><div class="entry"><span>04</span><b>UDP</b><small>独立的温度读数</small></div></li>
-      <li><a class="entry hot" href="#trace"><span>05</span><b>DNS</b><small>查询实验室地址</small><span aria-hidden="true">›</span></a></li>
-      <li><div class="entry"><span>06</span><b>HTTP</b><small>读取状态页</small></div></li>
-      <li><div class="entry"><span>07</span><b>TLS 1.3</b><small>明文握手到密文</small></div></li>
-      <li><div class="entry"><span>08</span><b>DHCP</b><small>分配 IPv4 租约</small></div></li>
-    </ol>
-  </section>
-  <section class="lab" id="trace" aria-labelledby="b-trace"><div class="frame">
-    <header class="lab-head"><div><p>记录 05 / DNS</p><h2 id="b-trace">向解析器发出查询</h2></div><span class="badge">Ⅱ　暂停 · 报文在途</span></header>
-    <div class="bench">
-      <div class="plate"><span>链路记录</span><span>UDP 53040 → 53</span></div>
-      <figure class="topology"><div class="diagram">
-        <svg viewBox="0 0 760 233" role="img" aria-labelledby="b-topology">
-          <title id="b-topology">老式 CRT 工作站发出的 DNS A 查询正沿着连线飞往递归服务器。</title>
+<div class="app" id="app">
+  <header class="top">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">PM</span><div><h1>数据包博物馆</h1><small>PACKET MUSEUM · 夜间工作台</small></div></div>
+    <div class="osi" id="osi" aria-label="OSI 层级筛选"><span>OSI</span></div>
+    <input class="search" id="search" type="search" aria-label="搜索协议" placeholder="搜索协议">
+    <div class="tools"><button class="drawer-open" id="open-catalog">目录</button><button id="layout" title="切换专注布局" aria-label="专注布局" aria-pressed="false">▣ 布局</button><button id="theme" title="切换明暗主题" aria-label="切换主题">◐ 主题</button></div>
+  </header>
+  <main class="grid">
+    <aside class="panel side" id="side" aria-label="协议目录"><header class="panel-head"><h2>协议目录</h2><small id="count">08 项</small></header></aside>
+    <section class="panel stage" aria-label="主舞台">
+      <header class="panel-head"><div class="views" aria-label="舞台视图"><button id="show-network" aria-pressed="true">拓扑</button><button id="show-packet" aria-pressed="false">报文</button></div><small id="stage-status" class="stage-status"></small></header>
+      <div id="canvas" class="canvas">
+        <svg viewBox="0 0 760 460" role="group" aria-label="DNS 网络拓扑">
           <defs>
-            <linearGradient id="b-plastic" x2="0" y2="1"><stop stop-color="#c5b89a"/><stop offset=".45" stop-color="#a3987c"/><stop offset="1" stop-color="#6d624d"/></linearGradient>
-            <linearGradient id="b-metal" x2="0" y2="1"><stop stop-color="#68716b"/><stop offset="1" stop-color="#323932"/></linearGradient>
-            <radialGradient id="b-glass"><stop stop-color="#573a21"/><stop offset="1" stop-color="#211c13"/></radialGradient>
-            <pattern id="b-raster" width="4" height="4" patternUnits="userSpaceOnUse"><path d="M0 3h4" stroke="#211b13" opacity=".7"/></pattern>
-            <marker id="b-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 7 3.5 0 7Z" fill="#e0a75b"/></marker>
-            <g id="b-drive"><rect width="120" height="24" rx="2" fill="#56615a" stroke="#171c17"/><rect x="7" y="5" width="78" height="13" fill="#272f28"/><path d="M12 9h66m-66 5h66" stroke="#738071" stroke-dasharray="2 3"/><rect x="91" y="6" width="11" height="12" fill="#313a30"/><circle cx="111" cy="9" r="2" fill="#91ca80"/><circle cx="111" cy="15" r="1.5" fill="#e3a55d"/></g>
-          </defs>
-          <path d="M31 203h246m224 0h228" stroke="#777e61" opacity=".45" stroke-width="3"/>
-          <path d="M225 153h341" stroke="#283227" stroke-width="9"/><path d="M226 153h331" stroke="#e0a75b" stroke-width="2" stroke-dasharray="4 8" marker-end="url(#b-arrow)"/>
-          <g stroke="#413a2f" stroke-width="1.5" stroke-linejoin="round">
+            <linearGradient id="plastic" x2="0" y2="1"><stop stop-color="#f8e7bc"/><stop offset=".49" stop-color="#c8b68b"/><stop offset="1" stop-color="#978358"/></linearGradient>
+            <linearGradient id="steel" x2="0" y2="1"><stop stop-color="#7d887d"/><stop offset="1" stop-color="#3b4741"/></linearGradient>
+            <radialGradient id="glass"><stop style="stop-color:var(--tube)"/><stop offset="1" style="stop-color:var(--screen)"/></radialGradient>
+            <pattern id="raster" width="4" height="4" patternUnits="userSpaceOnUse"><path d="M0 3h4" stroke="#211b13" opacity=".55"/></pattern>
+            <marker id="arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 7 3.5 0 7Z" fill="var(--route)"/></marker>
+            <g id="drive"><rect width="120" height="24" rx="2" fill="#56615a" stroke="#171c17"/><rect x="7" y="5" width="78" height="13" fill="#272f28"/><path d="M12 9h66m-66 5h66" stroke="#738071" stroke-dasharray="2 3"/><rect x="91" y="6" width="11" height="12" fill="#313a30"/><circle cx="111" cy="9" r="2" fill="#91ca80"/><circle cx="111" cy="15" r="1.5" fill="#e3a55d"/></g>
+            <g id="pc" transform="translate(-43 -30)"><g stroke="#413a2f" stroke-width="1.5" stroke-linejoin="round">
             <path d="m183 48 16-18h56l-13 18Z" fill="#c9ba9c"/><path d="m243 48 12-18v142l-12 17Z" fill="#6c6251"/>
-            <rect x="178" y="48" width="65" height="142" rx="4" fill="url(#b-plastic)"/>
+            <rect x="178" y="48" width="65" height="142" rx="4" fill="url(#plastic)"/>
             <rect x="186" y="58" width="49" height="18" fill="#81765e"/><path d="M191 67h36" stroke="#322e25" stroke-width="3"/>
             <rect x="186" y="82" width="49" height="18" fill="#81765e"/><path d="M191 91h28" stroke="#322e25" stroke-width="3"/>
             <path d="M188 125h44m-44 5h44m-44 5h44m-44 5h44m-44 5h44m-44 5h44" stroke="#655b48"/>
             <rect x="189" y="165" width="21" height="15" rx="2" fill="#7b7059"/><circle cx="222" cy="170" r="2.5" fill="#8acc79"/>
             <path d="M62 65 85 49l65 1 28 18 7 52-20 16-20-22Z" fill="#8d8167"/><path d="M70 65 85 49l65 1 28 18-20-3Z" fill="#b6a78a"/>
-            <rect x="43" y="64" width="124" height="90" rx="9" fill="url(#b-plastic)"/><path d="m83 154-5 11-15 6h80l-15-6-5-11Z" fill="#a59474"/>
-            <rect x="52" y="73" width="106" height="67" rx="7" fill="#554f41"/><path d="M58 82q1-4 6-5 39-4 81 0 6 1 7 6v46q-1 5-6 6-40 3-82 0-6-1-6-6Z" fill="url(#b-glass)"/>
-            <rect x="59" y="79" width="92" height="56" rx="6" fill="url(#b-raster)" stroke="none"/><path d="M62 85q14-6 44-4l-15 6-29 9Z" fill="#f7dbb8" opacity=".13" stroke="none"/>
+            <rect x="43" y="64" width="124" height="90" rx="9" fill="url(#plastic)"/><path d="m83 154-5 11-15 6h80l-15-6-5-11Z" fill="#a59474"/>
+            <rect x="52" y="73" width="106" height="67" rx="7" fill="#554f41"/><path d="M58 82q1-4 6-5 39-4 81 0 6 1 7 6v46q-1 5-6 6-40 3-82 0-6-1-6-6Z" fill="url(#glass)"/>
+            <rect x="59" y="79" width="92" height="56" rx="6" fill="url(#raster)" stroke="none"/><path d="M62 85q14-6 44-4l-15 6-29 9Z" fill="#f7dbb8" opacity=".13" stroke="none"/>
             <circle cx="148" cy="147" r="2" fill="#e1a358"/><path d="M52 146h19" stroke="#564f3c"/>
             <path d="m57 181 84 1 21 12H43Z" fill="#b2a384"/><path d="M59 185h79m-85 5h95" stroke-dasharray="3 2"/>
           </g>
-          <g fill="#f2b96f" font-family="monospace" font-size="8.6"><text x="67" y="101">&gt; QUERY A</text><text x="67" y="115">TX 4C21 ▊</text></g>
-          <g stroke="#202820" stroke-width="2" stroke-linejoin="round">
-            <path d="m566 53 22-17h131l-15 17Z" fill="#6a756d"/><path d="m703 53 16-17v139l-16 17Z" fill="url(#b-metal)"/><path d="m709 63 5-6v107l-5 7Z" fill="#2c342c"/>
-            <rect x="565" y="53" width="140" height="139" rx="3" fill="url(#b-metal)"/><rect x="572" y="60" width="126" height="122" fill="#2a342b"/>
-            <use href="#b-drive" x="575" y="64"/><use href="#b-drive" x="575" y="94"/><use href="#b-drive" x="575" y="124"/><use href="#b-drive" x="575" y="154"/>
+          <g fill="var(--phosphor)" font-family="monospace" font-size="8.6"><text x="67" y="101">&gt; QUERY A</text><text x="67" y="115">TX 4C21 ▊</text></g></g>
+            <g id="rack" transform="translate(-565 -36)"><g stroke="#202820" stroke-width="2" stroke-linejoin="round">
+            <path d="m566 53 22-17h131l-15 17Z" fill="#6a756d"/><path d="m703 53 16-17v139l-16 17Z" fill="url(#steel)"/><path d="m709 63 5-6v107l-5 7Z" fill="#2c342c"/>
+            <rect x="565" y="53" width="140" height="139" rx="3" fill="url(#steel)"/><rect x="572" y="60" width="126" height="122" fill="#2a342b"/>
+            <use href="#drive" x="575" y="64"/><use href="#drive" x="575" y="94"/><use href="#drive" x="575" y="124"/><use href="#drive" x="575" y="154"/>
             <path d="M569 192v9h13v-9m106 0v9h13v-9" fill="#555b49"/>
-          </g>
-          <g transform="translate(344 130)"><path d="M0 0h105l12 11v34H0Z" fill="#302619" stroke="#e0a75b" stroke-width="2"/><path d="M105 0v11h12" fill="none" stroke="#e0a75b"/><text x="12" y="20" font-family="monospace" font-weight="700" font-size="14" fill="#ffd48e">DNS A →</text><text x="12" y="35" font-family="monospace" font-size="11" fill="#eed6a5">ID 4C21</text></g>
+          </g></g>
+            <g id="modem" stroke="#574b34" stroke-width="1.4" stroke-linejoin="round">
+              <path d="M8 25 32 8h86l-16 17Z" fill="#e7d8af"/><path d="m102 25 16-17v22l-16 15Z" fill="#85744f"/><rect x="8" y="25" width="94" height="21" rx="3" fill="url(#plastic)"/><path d="M24 18h67m-60-5h65" stroke="#8f8057" stroke-dasharray="3 3"/>
+              <rect x="16" y="31" width="22" height="9" rx="2" fill="#564d37"/><circle cx="23" cy="35.5" r="2" fill="#a7d580"/><circle cx="31" cy="35.5" r="2" fill="#dab768"/><path d="M52 36h41" stroke-dasharray="2 2"/><path d="M109 15V-15" stroke-width="4"/><path d="M109-15v-4" stroke-width="3" stroke-linecap="round"/>
+            </g>
+          </defs>
+          <g id="cables"></g><path id="active-wire" class="wire active" marker-end="url(#arrow)"/>
+          <g class="node" data-node="client" transform="translate(24 255)"><ellipse class="ground" cx="83" cy="120" rx="79" ry="7"/><use href="#pc" transform="scale(.72)"/><text x="80" y="148">CRT 工作站</text><text class="address" x="80" y="169">192.0.2.20</text></g>
+          <g class="node" data-node="gateway" transform="translate(213 305)"><ellipse class="ground" cx="58" cy="48" rx="61" ry="6"/><use href="#modem"/><text x="62" y="75">家用路由器</text><text class="address" x="62" y="95">链路下一跳</text></g>
+          <g class="node" data-node="resolver" transform="translate(363 207)"><ellipse class="ground" cx="61" cy="128" rx="62" ry="8"/><use href="#rack" transform="scale(.76)"/><text x="59" y="151">递归解析器</text><text class="address" x="59" y="171">198.51.100.53</text></g>
+          <g class="node" data-node="root" transform="translate(287 32)"><ellipse class="ground" cx="41" cy="89" rx="44" ry="6"/><use href="#rack" transform="scale(.52)"/><text x="38" y="113">根服务器</text><text class="address" x="38" y="132">192.0.2.53</text></g>
+          <g class="node" data-node="tld" transform="translate(567 43)"><ellipse class="ground" cx="42" cy="89" rx="44" ry="6"/><use href="#rack" transform="scale(.52)"/><text x="38" y="113">顶级域服务器</text><text class="address" x="38" y="132">203.0.113.17</text></g>
+          <g class="node" data-node="auth" transform="translate(623 252)"><ellipse class="ground" cx="42" cy="89" rx="44" ry="6"/><use href="#rack" transform="scale(.52)"/><text x="39" y="114">权威服务器</text><text class="address" x="39" y="134">203.0.113.53</text></g>
+          <g id="packet" class="packet" tabindex="0" role="button" aria-label="检查当前报文字节"><rect x="-34" y="-12" width="68" height="24" rx="3"/><text id="packet-tag" y="4"></text></g>
         </svg>
-      </div><figcaption class="devices"><div><b>01　CRT 工作站</b><code>192.0.2.20</code></div><div><b>02　递归解析器</b><code>198.51.100.53</code></div></figcaption></figure>
-      <div class="controls" aria-label="播放控制外观"><button disabled>◀ 上一步</button><button disabled class="primary">▶ 播放</button><button disabled>下一步 ▶</button><button disabled>↺ 重置</button><small>01 / 02</small></div>
-      <div class="readout">
-        <section class="notes" aria-labelledby="b-steps"><div class="plate" id="b-steps">步骤日志</div><div class="narrative"><h3>01　发出 A 查询</h3><p>请求含 <code>lab.example</code>，并通过 <code>RD=1</code> 请解析器代为查找。下一步，解析器将从缓存返回 IPv4 地址。</p><ol class="timeline"><li aria-current="step">01　发送查询 · 在途</li><li>02　缓存应答 · 未发生</li></ol></div></section>
-        <section aria-labelledby="b-bytes"><div class="plate"><span id="b-bytes">字节检查</span><span>DNS · 29 B</span></div><div class="bytes"><h3>TX #01 <code>0x4c21</code></h3><p>发送侧记录 · DNS 负载</p>
-          <div class="byte-grid"><div class="hex" aria-label="查询报文十六进制"><i>000</i><span><mark>4c 21</mark> 01 00 00 01 00 00</span><i>008</i><span>00 00 00 00 03 6c 61 62</span><i>010</i><span>07 65 78 61 6d 70 6c 65</span><i>018</i><span>00 00 01 00 01</span></div>
-            <ul class="map"><li class="highlight">+00　ID　 0x4c21</li><li>+02　标志　0x0100 / RD</li><li>+04　问题数　1</li><li>+0c　域名　lab.example</li><li>+19　类型 / 类　A / IN</li></ul></div>
-        </div></section>
       </div>
-    </div>
-  </div></section>
-</main>
-<footer class="frame footer"><span>记录结束 / END OF LOG</span><a href="#directory">回索引 ↑</a></footer>
+      <div id="legend" class="legend"><b>━━</b> 当前路径　┄┄ 其他连接　·　教学拓扑</div>
+      <div id="packet-view" class="packet-view" hidden>
+        <div class="frame-head" id="frame-head"></div><div class="layers" id="layers" aria-label="报文封装层"></div>
+        <div class="inspector"><div class="fields" id="fields" aria-label="报文字段"></div><div class="dump" id="dump" aria-label="十六进制和 ASCII"></div></div>
+      </div>
+    </section>
+    <aside class="panel knowledge" aria-label="课程知识和步骤讲解">
+      <header class="panel-head"><h2>课程知识卡</h2><small>DNS / 05</small></header>
+      <section><h3>域名系统</h3><p>客户端不必知道服务器地址，只要把名字交给解析器。缓存未命中时，解析器沿着域名委派向下查找。</p>
+        <dl class="facts"><div><dt>所在层</dt><dd>应用层（第 7 层）</dd></div><div><dt>端口</dt><dd>53 / UDP、TCP</dd></div><div><dt>关键概念</dt><dd>递归、迭代、引荐、缓存</dd></div><div><dt>规范</dt><dd>RFC 1034、RFC 1035</dd></div></dl>
+      </section>
+      <section aria-live="polite" aria-atomic="true"><span class="stamp" id="step-stamp"></span><h3 id="step-title"></h3><p id="step-text"></p><p id="step-route"></p></section>
+    </aside>
+    <section class="panel flow" aria-labelledby="flow-title">
+      <header class="panel-head"><h2 id="flow-title">数据包流</h2><div class="playback"><label><span hidden>播放速度</span><select id="rate" aria-label="播放速度"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select></label><button id="prev" aria-label="上一个包" title="上一个包">◀</button><button class="primary" id="play">▶ 播放</button><button id="next" title="下一个包">单步 ▶</button><button id="reset" aria-label="重置" title="重置">↺</button></div></header>
+      <div class="log" id="log" tabindex="0" aria-label="报文表格"><table><thead><tr><th scope="col">序号</th><th scope="col">时间</th><th scope="col">源地址</th><th scope="col">目的地址</th><th scope="col">协议</th><th scope="col">信息</th><th scope="col">大小</th></tr></thead><tbody id="rows"></tbody></table></div>
+    </section>
+  </main>
+</div>
+<dialog id="drawer" aria-labelledby="drawer-title"><header class="panel-head"><h2 id="drawer-title">协议目录</h2><button id="close-catalog" aria-label="关闭目录">×</button></header></dialog>
+<div class="catalog" id="catalog"><nav class="filter" id="filters" aria-label="协议分类"></nav><ol class="courses" id="courses"></ol><p class="empty" id="no-results" hidden>没有匹配的协议</p></div>
+<script type="application/json" id="frames">
+[
+  [2,77,0,0,0,1,2,77,0,0,0,20,8,0,69,0,0,57,37,1,64,0,64,17,41,54,192,0,2,20,198,51,100,53,207,48,0,53,0,37,54,52,76,33,1,0,0,1,0,0,0,0,0,0,3,108,97,98,7,101,120,97,109,112,108,101,0,0,1,0,1],
+  [2,77,0,0,0,101,2,77,0,0,0,31,8,0,69,0,0,57,37,2,64,0,64,17,41,20,198,51,100,53,192,0,2,53,207,49,0,53,0,37,16,146,114,161,0,0,0,1,0,0,0,0,0,0,3,108,97,98,7,101,120,97,109,112,108,101,0,0,1,0,1],
+  [2,77,0,0,0,102,2,77,0,0,0,32,8,0,69,0,0,101,37,3,64,0,64,17,40,231,192,0,2,53,198,51,100,53,0,53,207,49,0,81,122,144,114,161,128,0,0,1,0,0,0,1,0,1,3,108,97,98,7,101,120,97,109,112,108,101,0,0,1,0,1,192,16,0,2,0,1,0,0,0,60,0,16,2,110,115,3,116,108,100,7,101,120,97,109,112,108,101,0,192,41,0,1,0,1,0,0,0,60,0,4,203,0,113,17],
+  [2,77,0,0,0,101,2,77,0,0,0,31,8,0,69,0,0,57,37,4,64,0,64,17,175,53,198,51,100,53,203,0,113,17,207,50,0,53,0,37,150,179,114,162,0,0,0,1,0,0,0,0,0,0,3,108,97,98,7,101,120,97,109,112,108,101,0,0,1,0,1],
+  [2,77,0,0,0,103,2,77,0,0,0,33,8,0,69,0,0,101,37,5,64,0,64,17,175,8,203,0,113,17,198,51,100,53,0,53,207,50,0,81,235,187,114,162,128,0,0,1,0,0,0,1,0,1,3,108,97,98,7,101,120,97,109,112,108,101,0,0,1,0,1,192,12,0,2,0,1,0,0,0,60,0,16,2,110,115,3,108,97,98,7,101,120,97,109,112,108,101,0,192,41,0,1,0,1,0,0,0,60,0,4,203,0,113,53],
+  [2,77,0,0,0,101,2,77,0,0,0,31,8,0,69,0,0,57,37,6,64,0,64,17,175,15,198,51,100,53,203,0,113,53,207,51,0,53,0,37,150,141,114,163,0,0,0,1,0,0,0,0,0,0,3,108,97,98,7,101,120,97,109,112,108,101,0,0,1,0,1],
+  [2,77,0,0,0,104,2,77,0,0,0,34,8,0,69,0,0,73,37,7,64,0,64,17,174,254,203,0,113,53,198,51,100,53,0,53,207,51,0,53,152,111,114,163,132,0,0,1,0,1,0,0,0,0,3,108,97,98,7,101,120,97,109,112,108,101,0,0,1,0,1,192,12,0,1,0,1,0,0,0,60,0,4,203,0,113,42],
+  [2,77,0,0,0,20,2,77,0,0,0,1,8,0,69,0,0,73,37,8,64,0,64,17,41,31,198,51,100,53,192,0,2,20,0,53,207,48,0,53,59,150,76,33,129,128,0,1,0,1,0,0,0,0,3,108,97,98,7,101,120,97,109,112,108,101,0,0,1,0,1,192,12,0,1,0,1,0,0,0,60,0,4,203,0,113,42]
+]
+</script>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const octets = JSON.parse($('frames').textContent).map(bytes => Uint8Array.from(bytes));
+const lesson = [
+  ['客户端问询','把名字交给解析器'],['根区引荐','找到负责 .example 的服务器'],['顶级域引荐','找到 lab.example 的权威服务器'],['权威查询','取得 A 记录'],['返回结果','把地址交回工作站']
+];
+const nodes = {
+ client:['工作站', [[174,322],[211,329],[330,329],[360,287]]], gateway:['家用路由器'], resolver:['递归解析器'],
+ root:['根服务器', [[386,216],[365,168],[337,120]]], tld:['顶级域服务器', [[478,243],[532,185],[566,108]]], auth:['权威服务器', [[479,283],[548,292],[620,295]]]
+};
+const scenario = [
+ ['client','resolver',0,'查询','RD=1 · A lab.example','工作站只发这一个递归请求。它希望收到最终答案，而不是自己去问根服务器。'],
+ ['resolver','root',1,'查询','向根区查询 A lab.example','本地缓存未命中。解析器从根区开始迭代询问；此包的 RD 位为 0。'],
+ ['root','resolver',1,'引荐','委派 .example · NS + 胶水','根区不知道实验室主机的地址。它给出 .example 的 NS 记录和对应地址，让解析器知道下一站。'],
+ ['resolver','tld',2,'查询','向 .example 查询 A lab.example','解析器使用引荐里的地址，向顶级域服务器继续问同一个问题。'],
+ ['tld','resolver',2,'引荐','委派 lab.example · NS + 胶水','顶级域服务器把 lab.example 区委派给权威服务器。附加区的胶水记录给出可连接的 IPv4 地址。'],
+ ['resolver','auth',3,'查询','向权威服务器查询 A lab.example','解析器向权威服务器发出最后一次迭代查询；这个事务使用独立的查询 ID。'],
+ ['auth','resolver',3,'应答','权威 A · 203.0.113.42 · TTL 60','权威服务器返回 A 记录，设置 AA 标志。解析器可以按记录的 TTL 缓存这个结果。'],
+ ['resolver','client',4,'应答','递归 A · 203.0.113.42 · TTL 60','解析器用最初的事务 ID 回答工作站，并置 RA 位表明自己支持递归；它不是该区的权威。']
+];
+const words = ['全部','链路','网络','传输','应用','安全'];
+const courses = [
+ ['Ethernet / ARP','同网段寻址',1,2], ['IPv4','逐跳转发',2,3], ['TCP','握手与关闭',3,4], ['UDP','无连接数据报',3,4],
+ ['DNS','名字如何变成地址',4,7], ['HTTP','请求与响应',4,7], ['TLS 1.3','建立加密通道',5,6], ['DHCP','分配 IPv4 租约',4,7]
+];
+const time = ['0.000','0.008','0.020','0.021','0.035','0.036','0.052','0.053'];
+const svgNS = 'http://www.w3.org/2000/svg';
+const motion = matchMedia('(prefers-reduced-motion: reduce)');
+const mobile = matchMedia('(max-width:760px)');
+const pad = n => String(n).padStart(2,'0');
+const hex = (n,len=2) => n.toString(16).padStart(len,'0');
+const ip = (b,i) => b.slice(i,i+4).join('.');
+const mac = (b,i) => Array.from(b.slice(i,i+6), n => hex(n)).join(':');
+const word = (b,i) => b[i]*256+b[i+1];
+const tag = n => `#${pad(n+1)}`;
+const routeText = ([a,b]) => `${nodes[a][0]} → ${nodes[b][0]}`;
+let index = 0, elapsed = 0, frame = null, last = null, running = false, finished = false, packetView = false;
+let layer = 0, category = 0, expanded = true, selectedField = null;
+
+for (const [id, [, points]] of Object.entries(nodes)) if (points) {
+  const cable = document.createElementNS(svgNS,'polyline');
+  cable.setAttribute('points', points.map(p => p.join(',')).join(' '));
+  cable.setAttribute('class','wire');
+  cable.dataset.link = id;
+  $('cables').append(cable);
+}
+
+function currentPath() {
+  const [from,to] = scenario[index];
+  if (from === 'client') return nodes.client[1];
+  if (to === 'client') return [...nodes.client[1]].reverse();
+  return from === 'resolver' ? nodes[to][1] : [...nodes[from][1]].reverse();
+}
+
+function placePacket() {
+  const path = $('active-wire');
+  const fraction = motion.matches ? 0.55 : 0.17 + 0.71*Math.min(1,elapsed/1450);
+  const p = path.getPointAtLength(path.getTotalLength()*fraction);
+  $('packet').setAttribute('transform',`translate(${p.x} ${p.y-12})`);
+}
+
+function renderCatalog() {
+  const q = $('search').value.trim().toLowerCase();
+  let count = 0;
+  [...$('courses').children].forEach((item,i) => {
+    const [name,desc,group,level] = courses[i];
+    item.hidden = (category !== 0 && category !== group) || (layer !== 0 && layer !== level) || !(name + desc).toLowerCase().includes(q);
+    if (!item.hidden) count++;
+  });
+  $('count').textContent = `${pad(count)} 项`;
+  $('no-results').hidden = count > 0;
+  $('steps').hidden = !expanded;
+  $('dns-course').setAttribute('aria-expanded',expanded);
+  $('course-chevron').textContent = expanded ? '⌄' : '›';
+  [...$('filters').children].forEach((button,i) => button.setAttribute('aria-pressed',i === category));
+  [...$('osi').querySelectorAll('button')].forEach((button,i) => {
+    button.setAttribute('aria-pressed',i+1 === layer);
+    button.classList.toggle('course-level',i === 6 && layer === 0);
+  });
+}
+
+$('osi').insertAdjacentHTML('beforeend',Array.from({length:7},(_,i) => `<button type="button" aria-label="OSI 第 ${i+1} 层" data-layer="${i+1}">${i+1}</button>`).join(''));
+$('filters').innerHTML = words.map((word,i) => `<button type="button" data-category="${i}">${word}</button>`).join('');
+const stepList = lesson.map(([title],i) => `<li><button type="button" data-step="${i}"><span class="step-num">${i+1}</span>${title}</button></li>`).join('');
+$('courses').innerHTML = courses.map(([name,desc],i) => {
+  const label = `<span class="course-symbol" aria-hidden="true">${i === 4 ? '●' : '○'}</span><span><b>${name}</b><small>${desc}</small></span>`;
+  return i === 4 ? `<li class="course"><button type="button" class="course-title dns" id="dns-course" aria-controls="steps">${label}<span id="course-chevron" class="chevron" aria-hidden="true"></span></button><ol class="steps" id="steps">${stepList}</ol></li>`
+    : `<li class="course"><div class="course-title">${label}</div></li>`;
+}).join('');
+$('rows').innerHTML = scenario.map(([, , , kind, label],i) => {
+  const b = octets[i];
+  return `<tr data-index="${i}"><td><button type="button" aria-label="定位到报文 ${i+1}">${tag(i)}</button></td><td>${time[i]} s</td><td>${ip(b,26)}</td><td>${ip(b,30)}</td><td><span class="dot ${kind === '应答' ? 'answer' : kind === '引荐' ? 'referral' : ''}"></span>DNS</td><td>${label}</td><td>${b.length} B</td></tr>`;
+}).join('');
+
+function render() {
+  const packet = scenario[index], [from,to,step,kind,,explain] = packet;
+  $('stage-status').textContent = `${tag(index)} ${kind} · ${nodes[from][0]} → ${nodes[to][0]}`;
+  $('packet-tag').textContent = `${tag(index)} ${kind}`;
+  $('active-wire').setAttribute('d','M' + currentPath().map(p=>p.join(' ')).join(' L'));
+  $('active-wire').dataset.source = from;
+  document.querySelectorAll('[data-node]').forEach(node => node.classList.toggle('active',[from,to].includes(node.dataset.node) || packet.includes('client') && node.dataset.node === 'gateway'));
+  placePacket();
+  $('step-stamp').textContent = `步骤 ${step+1} / ${lesson.length} · 报文 ${tag(index)}`;
+  $('step-title').textContent = lesson[step][1];
+  $('step-text').textContent = explain;
+  $('step-route').textContent = routeText(packet);
+  [...$('steps').querySelectorAll('button')].forEach((button,i) => i === step ? button.setAttribute('aria-current','step') : button.removeAttribute('aria-current'));
+  [...$('rows').children].forEach((row,i) => {
+    row.classList.toggle('future', i > index);
+    row.classList.toggle('current', i === index);
+    if (i === index) row.setAttribute('aria-current','true'); else row.removeAttribute('aria-current');
+  });
+  const row = $('rows').children[index], log = $('log');
+  if (row.offsetTop + row.offsetHeight > log.scrollTop + log.clientHeight) log.scrollTop = row.offsetTop + row.offsetHeight - log.clientHeight;
+  if (row.offsetTop < log.scrollTop + 23) log.scrollTop = Math.max(0,row.offsetTop - 23);
+  $('prev').disabled = index === 0;
+  $('next').disabled = index === scenario.length-1;
+  updatePlay();
+  if (packetView) renderBytes();
+}
+
+function updatePlay() { $('play').textContent = running ? 'Ⅱ 暂停' : finished ? '↻ 重播' : '▶ 播放'; }
+function pause() { running = false; cancelAnimationFrame(frame); frame = null; last = null; updatePlay(); }
+function jump(i) {
+  pause(); index = Math.max(0,Math.min(scenario.length-1,i)); elapsed = 0; finished = false; render();
+}
+function tick(now) {
+  if (!running) return;
+  if (last !== null) elapsed += Math.min(now-last,100)*Number($('rate').value);
+  last = now;
+  if (elapsed >= 1450) {
+    if (index === scenario.length-1) { finished = true; placePacket(); pause(); return; }
+    elapsed -= 1450; index++; render();
+  }
+  if (!motion.matches && !packetView) placePacket();
+  frame = requestAnimationFrame(tick);
+}
+function play() {
+  if (running) { pause(); return; }
+  if (finished) jump(0);
+  running = true; updatePlay(); frame = requestAnimationFrame(tick);
+}
+
+const groups = [['Ethernet',14,'ether'],['IPv4',20,'ip'],['UDP',8,'udp'],['DNS',0,'dns']];
+function readName(b,pos) {
+  const labels = []; let end; const seen = new Set();
+  while (pos < b.length && !seen.has(pos)) {
+    seen.add(pos);
+    const length = b[pos++];
+    if (length === 0) return [labels.join('.') || '.',end ?? pos];
+    if ((length & 192) === 192 && pos < b.length) { end ??= pos+1; pos = 42+((length & 63)*256+b[pos]); }
+    else if (length > 63 || pos+length > b.length) break;
+    else { labels.push(String.fromCharCode(...b.slice(pos,pos+length))); pos += length; }
+  }
+  throw new Error('样例 DNS 名称无效');
+}
+function fieldsOf(b) {
+  const uint = (i,n) => n === 1 ? b[i] : word(b,i), H = (i,n=2) => `0x${hex(uint(i,n),n*2)}`;
+  const flag = word(b,44);
+  const result = [
+    [['目的 MAC',0,6,mac(b,0),'此观察链路上的下一跳接口。'],['源 MAC',6,6,mac(b,6),'当前发帧网口的硬件地址。'],['类型',12,2,H(12),'0x0800 表示后面是 IPv4。']],
+    [['版本 / IHL',14,1,`${b[14]>>4} / ${(b[14]&15)*4} B`,'无选项，头长 20 字节。'],['DSCP / ECN',15,1,H(15,1),'本例未设置服务等级或拥塞标记。'],['总长度',16,2,`${word(b,16)} B`,'包含 IP 首部和 UDP 数据报。'],['标识',18,2,H(18),'同一 IP 数据报的分片共享此值。'],['标志 / 偏移',20,2,`DF=${(b[20]>>6)&1} · 偏移 ${word(b,20)&8191}`,'本例不分片。'],['TTL',22,1,b[22],'路由转发时递减。'],['上层协议',23,1,`${b[23]} · UDP`,'载荷是 UDP 数据报。'],['首部校验和',24,2,H(24),'只校验 IPv4 首部。'],['源 IPv4',26,4,ip(b,26),'IP 源端地址。'],['目的 IPv4',30,4,ip(b,30),'IP 目的端地址。']],
+    [['源端口',34,2,word(b,34),'发送端的 UDP 端口。'],['目的端口',36,2,word(b,36),'查询投递到 53，应答返回客户端端口。'],['UDP 长度',38,2,`${word(b,38)} B`,'首部与 DNS 负载合计。'],['UDP 校验和',40,2,H(40),'覆盖伪首部、UDP 首部与数据。']],
+    [['事务 ID',42,2,H(42),'同一对查询与应答使用相同 ID。'],['标志',44,2,`${H(44)} · ${[flag&0x8000?'QR':'',flag&0x0400?'AA':'',flag&0x0100?'RD':'',flag&0x0080?'RA':''].filter(Boolean).join(' ') || '查询'}`,'QR 标识应答；AA 为权威，RD 请求递归，RA 表示可递归。'],['问题数',46,2,word(b,46),'Question 区的问题数量。'],['回答数',48,2,word(b,48),'Answer 区的资源记录数量。'],['权威数',50,2,word(b,50),'Authority 区的资源记录数量。'],['附加数',52,2,word(b,52),'Additional 区的资源记录数量。']]
+  ];
+  const dns = result[3];
+  const [question,end] = readName(b,54);
+  dns.push(['查询名',54,end-54,question,'每个标签前先写长度，末尾字节为 00。'],['查询类型',end,2,`${word(b,end)} · A`,'请求 IPv4 地址记录。'],['查询类',end+2,2,`${word(b,end+2)} · IN`,'互联网类。']);
+  let pos = end+4;
+  for (const [offset, label] of [[48,'回答'],[50,'权威'],[52,'附加']]) for (let i=0;i<word(b,offset);i++) {
+    const [owner,next] = readName(b,pos), type = word(b,next), ttl = new DataView(b.buffer).getUint32(next+4), length = word(b,next+8), data = next+10;
+    dns.push([`${label}名称`,pos,next-pos,owner,'压缩指针以 DNS 消息起点为基准。'],['记录类型',next,2,`${type} · ${type === 1 ? 'A' : 'NS'}`,'A 保存 IPv4，NS 指向域名服务器。'],['记录类',next+2,2,`${word(b,next+2)} · IN`,'本记录属于互联网类。'],['TTL',next+4,4,`${ttl} s`,'此记录还可缓存的秒数。'],['记录数据长度',next+8,2,`${length} B`,'紧接其后的 RDATA 字节数。'],[`${label}数据`,data,length,type === 1 ? ip(b,data) : readName(b,data)[0],'引荐给出服务器名及胶水，回答给出主机地址。']);
+    pos = data+length;
+  }
+  return result;
+}
+
+function highlight(button) {
+  selectedField?.classList.remove('selected');
+  selectedField = button;
+  button?.classList.add('selected');
+  const start = Number(button?.dataset.start), end = start+Number(button?.dataset.length);
+  const dump = $('dump');
+  dump.querySelectorAll('[data-byte]').forEach(span => span.classList.toggle('selected',Number(span.dataset.byte)>=start && Number(span.dataset.byte)<end));
+  const first = dump.querySelector('.byte.selected');
+  if (first) {
+    const byte = first.getBoundingClientRect(), area = dump.getBoundingClientRect();
+    if (byte.top < area.top || byte.bottom > area.bottom) dump.scrollTop += byte.top-area.top-8;
+  }
+}
+
+function renderBytes() {
+  const b = octets[index], fields = fieldsOf(b);
+  $('frame-head').textContent = `${tag(index)} · ${routeText(scenario[index])} · ${b.length} B · 不含链路 FCS`;
+  $('layers').innerHTML = groups.map(([label,len,color],i) => `<button type="button" data-group="${i}" style="flex:${len || b.length-42} 1 49px;--layer:var(--${color})"><b>${label}</b><small>${len || b.length-42} B</small></button>`).join('');
+  $('fields').innerHTML = fields.map((items,i) => `<section id="group-${i}"><h3 style="--layer:var(--${groups[i][2]})">${groups[i][0]} / ${items.length} 项</h3>${items.map(([name,start,length,value,explain]) => `<button type="button" class="field" data-start="${start}" data-length="${length}"><b>${name}</b><code>${value}</code><small>${explain}</small></button>`).join('')}</section>`).join('');
+  const lines = [];
+  const width = mobile.matches ? 5 : 8;
+  for (let i=0;i<b.length;i+=width) {
+    const slice = Array.from(b.slice(i,i+width));
+    const ascii = n => n < 32 || n > 126 ? '.' : n === 38 ? '&amp;' : n === 60 ? '&lt;' : n === 62 ? '&gt;' : String.fromCharCode(n);
+    lines.push(`<div class="dump-line"><span class="offset">${hex(i,4)}</span><span>${slice.map((n,j)=>`<span class="byte" data-byte="${i+j}">${hex(n)}</span>`).join('')}</span><span class="ascii">${slice.map((n,j)=>`<span class="byte" data-byte="${i+j}">${ascii(n)}</span>`).join('')}</span></div>`);
+  }
+  $('dump').innerHTML = lines.join('');
+  $('fields').scrollTop = 0; $('dump').scrollTop = 0; highlight(null);
+}
+
+function setView(bytes,focus=false) {
+  if (bytes) pause();
+  packetView = bytes;
+  $('canvas').hidden = $('legend').hidden = bytes;
+  $('packet-view').hidden = !bytes;
+  $('show-network').setAttribute('aria-pressed',!bytes);
+  $('show-packet').setAttribute('aria-pressed',bytes);
+  if (bytes) renderBytes(); else placePacket();
+  if (focus) $(bytes ? 'show-packet' : 'show-network').focus();
+}
+
+$('filters').onclick = e => { if (e.target.dataset.category !== undefined) { category = Number(e.target.dataset.category); renderCatalog(); } };
+$('osi').onclick = e => { if (e.target.dataset.layer) { const value = Number(e.target.dataset.layer); layer = layer === value ? 0 : value; renderCatalog(); } };
+$('search').oninput = renderCatalog;
+$('search').onkeydown = e => { if (e.key === 'Enter' && mobile.matches && !$('drawer').open) $('drawer').showModal(); };
+$('dns-course').onclick = () => { expanded = !expanded; renderCatalog(); };
+$('steps').onclick = e => {
+  const button = e.target.closest('[data-step]'); if (!button) return;
+  jump(scenario.findIndex(p => p[2] === Number(button.dataset.step)));
+  if ($('drawer').open) $('drawer').close();
+};
+$('rows').onclick = e => { const row = e.target.closest('[data-index]'); if (row) jump(Number(row.dataset.index)); };
+$('show-network').onclick = () => setView(false);
+$('show-packet').onclick = () => setView(true);
+$('packet').onclick = () => setView(true,true);
+$('packet').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setView(true,true); } };
+$('layers').onclick = e => {
+  const i = e.target.closest('[data-group]')?.dataset.group; if (i === undefined) return;
+  const group = $(`group-${i}`);
+  $('fields').scrollTop += group.getBoundingClientRect().top-$('fields').getBoundingClientRect().top;
+  const first = group.querySelector('.field');
+  first.focus({preventScroll:true});
+  highlight(first);
+};
+$('fields').onpointerover = e => { const field = e.target.closest('.field'); if (field) highlight(field); };
+$('fields').onpointerleave = () => highlight(document.activeElement.closest('.field'));
+$('fields').onfocusin = e => highlight(e.target.closest('.field'));
+$('fields').onfocusout = e => { if (!$('fields').contains(e.relatedTarget)) highlight(null); };
+$('play').onclick = play;
+$('prev').onclick = () => jump(index-1);
+$('next').onclick = () => jump(index+1);
+$('reset').onclick = () => jump(0);
+$('layout').onclick = () => $('layout').setAttribute('aria-pressed',$('app').classList.toggle('wide'));
+$('theme').onclick = () => {
+  const root = document.documentElement;
+  root.dataset.theme = (root.dataset.theme || root.dataset.base) === 'light' ? 'dark' : 'light';
+};
+$('open-catalog').onclick = () => $('drawer').showModal();
+$('close-catalog').onclick = () => $('drawer').close();
+function moveCatalog() {
+  if ($('drawer').open) $('drawer').close();
+  $(mobile.matches ? 'drawer' : 'side').append($('catalog'));
+  if (packetView) renderBytes();
+}
+mobile.addEventListener('change',moveCatalog);
+motion.addEventListener('change',placePacket);
+document.addEventListener('visibilitychange',() => { if (document.hidden && running) pause(); });
+document.addEventListener('keydown',e => {
+  if (e.defaultPrevented || e.altKey || e.metaKey || e.ctrlKey || $('drawer').open || e.target.closest('input,select,textarea')) return;
+  if (e.key === ' ' && !e.target.closest('button,[role=button]')) { e.preventDefault(); play(); }
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); jump(index+(e.key === 'ArrowLeft' ? -1 : 1)); }
+});
+moveCatalog(); renderCatalog(); render();
+</script>
 </html>
