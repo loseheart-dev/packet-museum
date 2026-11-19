@@ -1,44 +1,45 @@
+// 概览、步骤与总结核对自原站 index-CNPseYOQ.js 和 zh-AH-lIMHP.js。
 export const overview = {
-  title: 'Ethernet and Switches',
-  text: 'Ethernet carries almost every wired network, and Wi-Fi access points pass their traffic on to it. Every network card has a 48-bit MAC address. A frame says which card it is for and which card sent it, and a switch delivers it: it learns which port each address is behind from the frames it sees, and sends each frame only where it needs to go.',
-  facts: [['Layer', 'Data Link (Layer 2)'], ['Address', '48-bit MAC'], ['Header', '14 bytes, plus a 4-byte FCS'], ['Frame size', '64 to 1,518 bytes'], ['Speeds', '10 Mb/s to 800 Gb/s'], ['Defined In', 'IEEE 802.3']],
+  title: '以太网与交换机',
+  text: '几乎所有有线网络都由以太网承载，Wi-Fi 接入点也把流量交给以太网。每块网卡都有一个 48 位的 MAC 地址。帧写明发给哪块网卡、由哪块网卡发出，交换机负责投递：它从看到的帧中学习每个地址在哪个端口后面，并且只把每一帧送到它该去的地方。',
+  facts: [['层', '数据链路层（第 2 层）'], ['地址', '48 位 MAC'], ['头部', '14 字节，外加 4 字节 FCS'], ['帧大小', '64 到 1,518 字节'], ['速率', '10 Mb/s 到 800 Gb/s'], ['定义于', 'IEEE 802.3']],
 };
 
 export const outro = {
-  title: 'Switched', subtitle: 'Learned, flooded, forwarded',
-  text: 'The switch learned where the laptop and the NAS were from the frames they sent, flooded only the broadcast, and sent every other frame out of just the port it needed. MAC addresses carried each frame across one link; at the router the packet moved into a new frame. Press REPLAY to watch it again.',
-  facts: [['Learned', '2 addresses, 2 ports'], ['Flooded', 'Only the broadcast'], ['Frame', '14-byte header, 4-byte FCS'], ['Forgets after', '5 minutes unused']],
+  title: '交换完成', subtitle: '学习、泛洪、转发',
+  text: '交换机从笔记本电脑和 NAS 发出的帧中学到了它们的位置，只泛洪了广播，其余每一帧都只从需要的端口发出。MAC 地址只负责把每一帧送过一段链路；到了路由器，数据包换进了新的帧。按“重播”可以再看一遍。',
+  facts: [['已学习', '2 个地址，2 个端口'], ['泛洪', '只有广播'], ['帧', '14 字节帧头，4 字节 FCS'], ['遗忘时间', '5 分钟未使用']],
 };
 
 export const steps = [
   {
-    id: 'who-has', title: 'Who Has the NAS?', subtitle: 'A broadcast asks for a MAC address',
-    text: 'The laptop wants to reach the NAS at 192.168.1.20. On a local network, frames are delivered by MAC address, and the laptop doesn’t know the NAS’s yet. So it sends an ARP request to ff:ff:ff:ff:ff:ff, the broadcast address, into port 1 of the switch.',
-    facts: [['Looking for', '192.168.1.20'], ['Sent to', 'ff:ff:ff:ff:ff:ff (all)'], ['Into', 'Switch port 1']],
+    id: 'who-has', title: 'NAS 在哪？', subtitle: '用广播询问 MAC 地址',
+    text: '笔记本电脑想访问 192.168.1.20 上的 NAS。在局域网里，帧按 MAC 地址投递，而笔记本电脑还不知道 NAS 的 MAC。于是它把一个 ARP 请求发往广播地址 ff:ff:ff:ff:ff:ff，送进交换机的端口 1。',
+    facts: [['要找', '192.168.1.20'], ['发送给', 'ff:ff:ff:ff:ff:ff（所有人）'], ['进入', '交换机端口 1']],
   },
   {
-    id: 'learn', title: 'Learn, Then Flood', subtitle: 'The switch notes where the laptop is',
-    text: 'A switch reads each frame’s source address and notes it in its MAC table: 00:00:5e:00:53:10 is on port 1. A broadcast is for everyone, so it sends a copy out of every other port: to the NAS on port 2 and the router on port 8. Frames for unknown addresses are flooded too.',
-    facts: [['Learned', '…:53:10 is on port 1'], ['Copies', 'Out of every other port'], ['Unknown address', 'Flooded the same way']],
+    id: 'learn', title: '先学习，再泛洪', subtitle: '交换机记下笔记本电脑的位置',
+    text: '交换机读取每一帧的源地址并记入 MAC 表：00:00:5e:00:53:10 在端口 1。广播是发给所有人的，所以它从其他每个端口各发一份副本：给端口 2 上的 NAS 和端口 8 上的路由器。发往未知地址的帧也会被泛洪。',
+    facts: [['已学习', '…:53:10 在端口 1'], ['副本', '从其他每个端口'], ['未知地址', '同样泛洪']],
   },
   {
-    id: 'reply', title: 'Only the NAS Answers', subtitle: 'The reply goes to one port',
-    text: 'Every device reads the request, but only the NAS has 192.168.1.20, so only it answers, straight to the laptop’s MAC; the router ignores it. The switch learns that 00:00:5e:00:53:20 is on port 2. It already knows where the laptop is, so the reply leaves by port 1 alone.',
-    facts: [['Answer', 'To the laptop only'], ['Learned', '…:53:20 is on port 2'], ['Out of', 'Port 1']],
+    id: 'reply', title: '只有 NAS 回答', subtitle: '回复只发往一个端口',
+    text: '每台设备都读到了请求，但只有 NAS 拥有 192.168.1.20，所以只有它直接回复笔记本电脑的 MAC；路由器忽略了请求。交换机学到 00:00:5e:00:53:20 在端口 2。它已经知道笔记本电脑在哪，所以回复只从端口 1 发出。',
+    facts: [['回答', '只发给笔记本电脑'], ['已学习', '…:53:20 在端口 2'], ['发出端口', '端口 1']],
   },
   {
-    id: 'forward', title: 'Port to Port', subtitle: 'Frames go only where they must',
-    text: 'The laptop connects to the NAS. Each frame starts with the NAS’s MAC, then its own, then a type: 0x0800, an IPv4 packet. After the packet, the card adds a 4-byte checksum. The switch looks up the destination and sends each frame out of port 2 only. The router never sees them.',
-    facts: [['Header', 'To, from, type: 14 bytes'], ['Checksum', '4 bytes, added by the card'], ['Router sees', 'Nothing']],
+    id: 'forward', title: '端口到端口', subtitle: '帧只去该去的地方',
+    text: '笔记本电脑连接 NAS。每一帧先是 NAS 的 MAC，然后是自己的 MAC，再是类型：0x0800，即 IPv4 数据包。数据包之后，网卡会加上 4 字节的校验和。交换机查找目的地址，只从端口 2 发出每一帧。路由器根本看不到它们。',
+    facts: [['头部', '目的、源、类型：14 字节'], ['校验和', '4 字节，由网卡添加'], ['路由器看到', '什么也没有']],
   },
   {
-    id: 'off-network', title: 'Off the Network', subtitle: 'A frame for the router',
-    text: 'Next the laptop opens a website at 203.0.113.10. That address isn’t on the local network, so the frame goes to the router: the router’s MAC, known from an earlier ARP, is the destination, while the packet inside still names 203.0.113.10. The switch sends it out of port 8.',
-    facts: [['Frame to', 'The router’s MAC'], ['Packet to', '203.0.113.10'], ['Out of', 'Port 8']],
+    id: 'off-network', title: '离开局域网', subtitle: '发给路由器的帧',
+    text: '接着笔记本电脑打开 203.0.113.10 上的网站。这个地址不在局域网内，所以帧发往路由器：目的地是之前通过 ARP 得知的路由器 MAC，而帧里的数据包仍然写着 203.0.113.10。交换机从端口 8 把它发出。',
+    facts: [['帧发往', '路由器的 MAC'], ['数据包发往', '203.0.113.10'], ['发出端口', '端口 8']],
   },
   {
-    id: 'rewrap', title: 'A New Frame', subtitle: 'Every hop rewraps the packet',
-    text: 'The router takes the packet out of the frame, lowers its TTL and swaps in its public address (NAT). Then it puts the packet in a new frame for its next link: its internet-side MAC as the source, the provider’s router as the destination. MAC addresses only ever cross one link.',
-    facts: [['From', 'The router’s internet port'], ['To', 'The provider’s router'], ['Packet to', 'Still 203.0.113.10']],
+    id: 'rewrap', title: '新的帧', subtitle: '每一跳都重新封装数据包',
+    text: '路由器把数据包从帧中取出，降低 TTL，并换上自己的公网地址（NAT）。然后把数据包放进下一段链路的新帧：源是它面向互联网一侧的 MAC，目的是运营商的路由器。MAC 地址从来只跨越一段链路。',
+    facts: [['从', '路由器的互联网端口'], ['到', '运营商的路由器'], ['数据包发往', '仍是 203.0.113.10']],
   },
 ];
