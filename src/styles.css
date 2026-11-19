@@ -71,28 +71,52 @@ dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line);pad
 .packet-key li::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--kind)}
 .packet-number,.packet-number:hover:not(:disabled){min-width:17px;height:17px;padding:0 3px;border-radius:9px;background:var(--kind);color:var(--mark-ink);font-weight:750;line-height:1}
 .packet-number:focus-visible{outline-color:var(--focus);outline-offset:2px}
-.sequence{flex:1;min-height:0;overflow:auto;background:var(--stage)}
-.sequence svg{display:block;width:100%;height:auto;min-height:100%}
-.seq-label,.seq-caption{text-anchor:middle;fill:var(--ink);font-size:14px;font-weight:700}
-.seq-lifeline{stroke:var(--path);stroke-width:1;stroke-dasharray:3 4}
-.seq-row{cursor:pointer}
-.seq-row.pending{visibility:hidden;pointer-events:none}
-.sequence .pending{visibility:hidden}
-.seq-loss{font-size:11px;font-weight:700;paint-order:stroke;stroke:var(--stage);stroke-width:3px}
-.seq-event{fill:var(--accent);font-size:11px;font-weight:700;paint-order:stroke;stroke:var(--stage);stroke-width:4px}
-.seq-hit{fill:transparent}
-.seq-row.current .seq-hit,.seq-row:hover .seq-hit,.seq-row:focus-visible .seq-hit{fill:var(--selected)}
-.seq-arrow{stroke:var(--kind);stroke-width:1.8;stroke-dasharray:1 1}
-.seq-tip,.seq-caption{fill:var(--kind)}
-.seq-row.flying .seq-tip{visibility:hidden}
-.seq-row.current .seq-arrow{stroke-width:2.8}
-.seq-num{fill:var(--muted);font:11px var(--mono)}
+.sequence{display:flex;flex:1;flex-direction:column;min-height:0;background:var(--panel)}
+.seq-head{flex:0 0 46px;overflow:hidden;border-bottom:1px solid var(--line)}
+.seq-track{position:relative}
+.seq-who{position:absolute;top:2px;transform:translateX(-50%);text-align:center}
+.seq-who b,.seq-who span{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.seq-who b{font-size:13.5px;line-height:18px;font-weight:800}
+.seq-who span{color:var(--muted);font:500 12px/16px var(--mono)}
+.seq-scroll{flex:1;min-height:0;overflow:auto;scrollbar-width:thin;overscroll-behavior:contain}
+.sequence svg{display:block}
+.seq-life{stroke:var(--line);stroke-width:1.5;stroke-dasharray:5 5}
+.seq-step line,#seq-wave path{stroke:var(--line);fill:none}
+.seq-step text,.seq-time{dominant-baseline:central;fill:var(--muted);paint-order:stroke;stroke:var(--panel);stroke-width:4px;stroke-linejoin:round}
+.seq-step text{font-size:10.5px;font-weight:800}
+.seq-step.current text,.seq-message.current .seq-time{fill:var(--accent)}
+.seq-step.current line{stroke:var(--path)}
+.seq-time{font:600 11px var(--mono);text-anchor:end}
+.seq-message{cursor:pointer}
+.sequence .pending{visibility:hidden;pointer-events:none}
+.seq-hit{stroke:transparent;stroke-width:18}
+.seq-line{stroke:var(--kind);stroke-width:1.8}
+.seq-message.lost .seq-line{stroke-dasharray:5 4}
+.seq-tip,.seq-dot,.seq-caption text{fill:var(--kind)}
+.seq-tip.seq-loss{fill:none;stroke:var(--red);stroke-width:2.6;stroke-linecap:round}
+.seq-caption text{font-size:11.5px;font-weight:800}
+.seq-lock{fill:none;stroke:var(--kind);stroke-width:1.2}
+.seq-caption rect,.seq-break>rect{fill:var(--panel)}
+.seq-break .seq-wave{fill:url(#seq-wave)}
+.seq-break text,.seq-note text{dominant-baseline:central;font-size:11px;font-weight:750;fill:var(--accent)}
+.seq-note circle{fill:var(--accent)}
+.seq-pill{fill:var(--panel);stroke:var(--accent)}
+.seq-break .seq-pill{fill:var(--bar);stroke:var(--line)}
+.seq-message.current .seq-line{stroke-width:2.8}
+.seq-message:is(:hover,:focus-visible,.inspected) .seq-line{stroke-width:3.2}
+.seq-message:is(:hover,:focus-visible,.current) .seq-caption rect{fill:var(--kind)}
+.seq-message:is(:hover,:focus-visible,.current,.inspected) .seq-caption text{fill:var(--mark-ink)}
+.seq-message:is(:hover,:focus-visible,.current,.inspected) .seq-lock{stroke:var(--mark-ink)}
+.seq-message.inspected .seq-caption rect{fill:var(--accent)}
+.flow tr.inspected{background:var(--selected);box-shadow:inset 3px 0 var(--accent)}
+.stage:has(.seq-inspector){position:relative}
+.stage .seq-inspector{position:absolute;inset:40px 10px 6px;z-index:2;border:1px solid var(--line);background:var(--panel);box-shadow:0 2px 12px var(--shadow)}
+.seq-inspector .frame-head{padding-right:34px}
+.seq-close{position:absolute;right:4px;top:4px;padding:0;width:26px;height:26px;font-size:18px;line-height:1}
 .course-title{min-height:36px;padding-block:3px}
 .course-title small{line-height:1.35}
 .side .panel-head,#drawer .panel-head{position:sticky;top:0;z-index:2}
 .filter{position:sticky;top:36px;padding:5px 0 7px;background:var(--panel);z-index:1}
-.seq-step{fill:var(--muted);font-size:12px;font-weight:700;paint-order:stroke;stroke:var(--stage);stroke-width:5px}
-.seq-label{font-size:13px}
 
 .tools button{min-width:31px;min-height:28px}
 #empty-trace{cursor:default}
@@ -107,12 +131,10 @@ dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line);pad
 .layers{overflow:auto}
 .layers button{min-width:max-content}
 @media(max-width:760px){
-  .sequence{height:317px;flex:none}.seq-label,.seq-caption{font-size:11px}.seq-num{font-size:8px}
+  .sequence{height:310px;flex:none}
   .node text{font-size:20px}.node .address{font-size:15px}
   .knowledge .facts{display:block}.knowledge .facts div{padding:4px 0}
   .flow .panel-head{flex-wrap:wrap;align-items:center;gap:4px 8px}.packet-key{order:1;flex-basis:100%}
   .grid{grid-template-areas:"stage" "flow" "knowledge"}
   .wide .grid{grid-template-areas:"stage" "flow"}
-  .seq-label{font-size:10px}
-  .seq-step{font-size:10px}
 }
