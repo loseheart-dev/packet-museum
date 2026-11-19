@@ -31,13 +31,14 @@ export const frames = [
   [57, 'switch', 'client', reply, 'arp', `只从端口 1 发出 · 192.168.1.20 的 MAC 地址是 ${nasMac}`, ['只从端口 1']],
   [231, 'client', 'switch', nasSyn, 'nas', '从端口 1 进入 · 50532 → 445 [SYN]', [`发往 ${nasMac}`, '类型 0x0800（IPv4）']],
   [236, 'switch', 'lan', nasSyn, 'nas', '从端口 2 发出 · 50532 → 445 [SYN]', ['只从端口 2']],
-  [281, 'lan', 'switch', nasAck, 'nas', '从端口 2 进入 · 445 → 50532 [SYN, ACK]', ['SYN-ACK']],
-  [286, 'switch', 'client', nasAck, 'nas', '从端口 1 发出 · 445 → 50532 [SYN, ACK]', ['SYN-ACK']],
+  [281, 'lan', 'switch', nasAck, 'nas', '从端口 2 进入 · 445 → 50532 [SYN, ACK]', []],
+  [286, 'switch', 'client', nasAck, 'nas', '从端口 1 发出 · 445 → 50532 [SYN, ACK]', []],
   [4128, 'client', 'switch', lanSyn, 'internet', '从端口 1 进入 · 52344 → 443 [SYN]（发给路由器的帧）', [`发往 ${routerMac}`, '发往 203.0.113.10 的 IP 数据包']],
   [4133, 'switch', 'router', lanSyn, 'internet', '从端口 8 发出 · 52344 → 443 [SYN]', ['从端口 8']],
   [4190, 'router', 'isp', wanSyn, 'internet', 'TTL 127 · 40112 → 443 [SYN]（NAT 后的新帧）', ['来自路由器的互联网端口', 'IP 仍发往 203.0.113.10']],
 ].map(([micros, from, to, bytes, category, summary, badge], i) => ({
   id: `ethernet-${i + 1}`, path: [from, to], bytes, category, summary, badge,
+  badgeLabel: ['ARP 请求', 'ARP 应答', 'SYN', 'SYN-ACK', '新的帧'][i < 3 ? 0 : i < 5 ? 1 : i < 7 ? 2 : i < 9 ? 3 : i < 11 ? 2 : 4],
   time: `${(micros / 1e6).toFixed(6)}s`, protocol: category === 'arp' ? 'ARP' : 'TCP',
   leadMs: i === 0 ? 2400 : 350, holdMs: i === 11 ? 1600 : 840,
 }));

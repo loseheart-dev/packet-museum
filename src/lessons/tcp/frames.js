@@ -18,8 +18,8 @@ const segments = [
   ['0.034s', false, ACK,       1,    1, 'control', '[ACK] Seq=1 Ack=1',                        ['seq=1 ack=1']],
   ['0.034s', false, PSH|ACK,   1,    1, 'request', '[PSH, ACK] Seq=1 Ack=1 Len=78',           ['seq=1  len=78', 'GET / HTTP/1.1 …'], { payload: request, application: 'http' }],
   ['0.051s', true,  ACK,       1,   79, 'control', '[ACK] Seq=1 Ack=79',                       ['ack=79']],
-  ['0.052s', true,  ACK,       1,   79, 'response', '[ACK] Seq=1 Ack=79 Len=1460',             ['报文段 1 丢失', 'seq=1'], { payload: first, outcome: 'dropped', leadMs: 650 }],
-  ['0.052s', true,  PSH|ACK, 1461,  79, 'response', '[PSH, ACK] Seq=1461 Ack=79 Len=1460',    ['seq=1 和 seq=1461'], { payload: second, leadMs: 810 }],
+  ['0.052s', true,  ACK,       1,   79, 'response', '[ACK] Seq=1 Ack=79 Len=1460',             [], { payload: first, outcome: 'dropped', leadMs: 650 }],
+  ['0.052s', true,  PSH|ACK, 1461,  79, 'response', '[PSH, ACK] Seq=1461 Ack=79 Len=1460',    [], { payload: second, leadMs: 810 }],
   ['0.069s', false, ACK,      79,    1, 'control', '[ACK] Seq=79 Ack=1 SLE=1461 SRE=2921',     ['ack=1', 'sack：已有 1461–2920'], { options: sack }],
   ['0.095s', true,  ACK,       1,   79, 'response', '[TCP Retransmission] Seq=1 Ack=79 Len=1460', ['seq=1  len=1460', '只有缺失的报文段'], { payload: first }],
   ['0.112s', false, ACK,      79, 2921, 'control', '[ACK] Seq=79 Ack=2921',                    ['ack=2921']],
@@ -28,6 +28,7 @@ const segments = [
   ['0.131s', true,  FIN|ACK,2921,   80, 'finish',  '[FIN, ACK] Seq=2921 Ack=80',               ['seq=2921  ack=80']],
   ['0.148s', false, ACK,      80, 2922, 'control', '[ACK] Seq=80 Ack=2922',                    ['ack=2922']],
 ];
+const titles = ['SYN', 'SYN-ACK', 'ACK', 'DATA', 'ACK', 'DATA', 'DATA', '重复 ACK', '重传', 'ACK', 'FIN', 'ACK', 'FIN', 'ACK'];
 
 export const frames = segments.map(([time, inbound, flags, seq, ack, category, summary, badge, { options, payload, ...presentation } = {}], i) => {
   const [src, dst] = inbound ? [server, client] : [client, server];
@@ -39,5 +40,5 @@ export const frames = segments.map(([time, inbound, flags, seq, ack, category, s
   const bytes = ethernet({ src: sourceMac, dst: targetMac, pad: true,
     payload: ipv4({ src, dst, protocol: 6, id: 0x1c40 + i, ttl: inbound ? 52 : 128, payload: transport }) });
   return { id: `tcp-${i + 1}`, path: inbound ? reversePath : path, bytes, protocol: 'TCP', time,
-    summary: `${srcPort} → ${dstPort} ${summary}`, category, badge, relativeTo: [isn, flags & ACK ? peerISN : null], ...presentation };
+    summary: `${srcPort} → ${dstPort} ${summary}`, category, badge, badgeLabel: titles[i], relativeTo: [isn, flags & ACK ? peerISN : null], ...presentation };
 });

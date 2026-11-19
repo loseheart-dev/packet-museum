@@ -25,10 +25,10 @@
         <output id="scene-event" hidden></output>
         <template id="packet-template"><svg><g>
           <circle class="arrival" fill="none" stroke="var(--kind)" stroke-width="2" opacity="0" pointer-events="none"/>
+          <path class="packet-drop" d="m-5-5 10 10m0-10-10 10" stroke="var(--kind)" stroke-width="2" pointer-events="none" hidden/>
           <g class="packet" visibility="hidden" tabindex="-1" role="button" aria-label="数据包检查器">
-            <circle class="trail" r="2.5" opacity=".43"/><circle class="trail" r="1.8" opacity=".30"/><circle class="trail" r="1.2" opacity=".21"/>
-            <circle class="halo" r="9" opacity=".18"/><circle class="head" r="4.4"/>
-            <g class="packet-badge"><rect class="packet-body" x="-94" y="-15" width="188" height="41" rx="2"/><path class="packet-band" d="M-94-15h188V0H-94Z"/><text class="packet-tag" y="-4"></text><text class="packet-label" y="10"><tspan x="0"></tspan><tspan x="0" dy="11"></tspan></text></g>
+            <g class="packet-glyph"><circle class="trail" r="2.5" opacity=".43"/><circle class="trail" r="1.8" opacity=".30"/><circle class="trail" r="1.2" opacity=".21"/><circle class="halo" r="9" opacity=".18"/><circle class="head" r="4.4"/></g>
+            <g class="packet-badge" transform="translate(0 -13)"><rect class="packet-body" rx="2"/><rect class="packet-band" height="15" rx="2"/><path class="packet-lock" d="M-2-2v-2a2 2 0 0 1 4 0v2M-3-2h6v5h-6z"/><text class="packet-tag"></text><text class="packet-label"><tspan x="0"></tspan><tspan x="0" dy="11"></tspan></text></g>
           </g>
         </g></svg></template>
       </div>

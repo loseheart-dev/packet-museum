@@ -6,7 +6,6 @@ const outbound = ['client', 'router', 'internet', 'web'];
 const inbound = [...outbound].reverse();
 const times = ['0.000s', '0.020s', '0.040s', '0.060s', '0.080s', '0.100s', '0.120s', '0.140s', '0.150s', '0.170s', '0.190s'];
 const start = [2350, 620, 800, 980, 1160, 620, 800, 980, 620, 800, 980];
-const lossNote = '第 7 帧丢失 · 不重发';
 
 export const frames = times.map((time, i) => {
   const reply = i >= 8, lost = i === 6, n = reply ? i - 8 : i;
@@ -23,7 +22,8 @@ export const frames = times.map((time, i) => {
     bytes: ethernet({ src: reply ? routerMac : clientMac, dst: reply ? clientMac : routerMac, payload: ip }),
     time, protocol: 'UDP', summary: `${srcPort} → ${dstPort} 长度=92`,
     category: reply ? 'reply' : 'voice',
-    badge: i === 0 ? ['UDP 50000 → 5004', '92 B 音频，无需建立'] : lost ? ['语音 7', lossNote] : [`${reply ? '对方语音' : '语音'} ${n + 1}`],
+    badge: i === 0 ? ['UDP 50000 → 5004', '92 B 音频，无需建立'] : [],
+    badgeLabel: `${reply ? '对方语音' : '语音'} ${n + 1}`,
     ...(lost ? { outcome: 'dropped' } : {}),
     leadMs: start[i],
     holdMs: i === 0 || lost || i === 10 ? 1050 : 220,

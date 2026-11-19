@@ -40,4 +40,5 @@ export const frames = [
     ['203.0.113.10 → 192.168.1.10', 'TTL 52 · NAT 之后'], segment(mac.lan, mac.client, 52, false, true), 'reply', 850],
 ].map(([id, path, time, summary, badge, bytes, category, leadMs]) => ({
   id, path, time, summary, badge, bytes, category, leadMs, holdMs: 1800, protocol: category === 'arp' ? 'ARP' : 'TCP',
+  ...(category === 'arp' ? { badgeLabel: id === 'arp-request' ? 'ARP 请求' : 'ARP 应答' } : {}),
 }));

@@ -36,8 +36,11 @@ dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line);pad
 .wire.active{stroke:var(--kind);stroke-width:1.68;stroke-dasharray:4.2 3.5;animation:lane-flow calc(.55s / var(--playback-scale)) linear infinite}
 .legend b{color:var(--kind,var(--query))}
 @keyframes lane-flow{to{stroke-dashoffset:-7.7}}
-.packet .halo,.packet .head,.packet .trail,.packet-band{fill:var(--kind)}
+.packet .halo,.packet .head,.packet .trail,.packet .packet-band{fill:var(--kind)}
+.packet .packet-band{stroke:none}
+.packet .packet-lock{fill:none;stroke:var(--mark-ink);pointer-events:none}
 .packet .head{stroke:var(--panel);stroke-width:1.4}
+.packet:focus-visible .head,.packet:focus-visible .packet-band{stroke:var(--focus);stroke-width:2}
 .packet .packet-body{fill:var(--panel);stroke:var(--kind);stroke-width:1}
 .packet text{fill:var(--mark-ink);font-size:10px}
 .packet .packet-label{fill:var(--ink);font-size:9px}

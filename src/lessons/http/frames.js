@@ -77,7 +77,8 @@ export const frames = rows.map(([endpoint, reply, bytes, protocol, time, summary
   const path = pathTo(endpoint);
   if (reply) path.reverse();
   return {
-    id: `http-${i + 1}`, path, bytes, protocol, time, summary, category, badge, application,
+    id: `http-${i + 1}`, path, bytes, protocol, time, summary, category, application,
+    ...(i < 5 ? { badgeLabel: badge[0], badge: badge.slice(1) } : { badge }),
     ...(i === 0 ? { leadMs: 2400 } : {}),
     ...(leadMs !== undefined ? { leadMs } : {}),
   };

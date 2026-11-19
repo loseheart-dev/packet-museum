@@ -15,9 +15,11 @@ const links = [
   { nodes: ['internet', 'web'], points: [[619, 288], [621, 124]] },
 ];
 const path = nodes.map(node => node.id), reverse = [...path].reverse();
+const titles = ['SYN', 'SYN-ACK', 'ACK', 'CLIENT HELLO', 'SERVER HELLO', '已加密', '已加密', 'FINISHED', '应用数据', 'TICKETS', '应用数据', 'CLOSE_NOTIFY', 'FIN', 'FIN'];
 const frames = transportFrames.map(({ fromServer, row, part, ...frame }) => {
   const [time, summary, badge] = rows[row], tls = frame.protocol === 'TLSv1.3';
-  return { ...frame, id: `tls-${row + 1}${part ? `-${part + 1}` : ''}`, path: fromServer ? reverse : path, time, summary, badge,
+  return { ...frame, id: `tls-${row + 1}${part ? `-${part + 1}` : ''}`, path: fromServer ? reverse : path, time, summary,
+    badge: tls && row !== 5 && row !== 6 ? badge : [], badgeLabel: titles[row], locked: tls && row >= 5,
     category: !tls ? 'tcp' : row <= 7 ? 'handshake' : fromServer ? 'server' : 'browser',
     leadMs: row === 0 ? 2350 : row === 6 ? 700 : 540 + part * 160, holdMs: tls ? 1750 : 500,
   };

@@ -6,7 +6,7 @@ const ease = n => n < .5 ? 4 * n ** 3 : 1 - 4 * (1 - n) ** 3;
 const mix = (a, b, t) => a.map((value, i) => value + (b[i] - value) * t);
 const speed = .145, hopPause = 140, zoomMs = 1100;
 
-export function mountScene(lesson, packets) {
+export function mountScene(lesson, packets, groups) {
   const network = $('network-svg'), deviceLayer = $('devices'), cableLayer = $('cables');
   network.querySelector('defs')?.remove();
   network.insertAdjacentHTML('afterbegin', deviceDefs);
@@ -25,7 +25,7 @@ export function mountScene(lesson, packets) {
     return [node.dataset.node, [b.x + e, b.y + f, b.x + b.width + e, b.y + b.height + f]];
   }));
   const nodes = new Map(lesson.nodes.map(node => [node.id, node]));
-  const ids = [...nodes.keys()], nodeBoxes = [...bounds.values()];
+  const ids = [...nodes.keys()];
   const full = lesson.viewBox ?? [0, 0, 760, 460];
   const dots = $('packet-dots');
   dots.replaceChildren();
@@ -34,9 +34,9 @@ export function mountScene(lesson, packets) {
   function visual(i) {
     if (visuals[i]) return visuals[i];
     const group = dots.appendChild(template.cloneNode(true));
-    return visuals[i] = { group, dot: group.querySelector('.packet'), glow: group.querySelector('.arrival'), badge: group.querySelector('.packet-badge'), trails: group.querySelectorAll('.trail') };
+    const badge = group.querySelector('.packet-badge');
+    return visuals[i] = { group, dot: group.querySelector('.packet'), glyph: group.querySelector('.packet-glyph'), glow: group.querySelector('.arrival'), drop: group.querySelector('.packet-drop'), badge, trails: group.querySelectorAll('.trail') };
   }
-  const badge = visual(0).badge.querySelector('rect').getBBox();
   let camera = { from: full, to: full, current: full, intro: full };
   const lanes = new Map();
   const laneId = (a, b) => `${a}>${b}`;
@@ -62,6 +62,7 @@ export function mountScene(lesson, packets) {
     });
     return { hops, flight: outcome === 'dropped' ? arrival * .59 : arrival };
   });
+  const folded = new Set(groups.filter(group => !group.separateRows).flatMap(group => group.members.slice(1)));
 
   function frameNodes(visible) {
     const boxes = visible.map(id => bounds.get(id));
@@ -85,13 +86,30 @@ export function mountScene(lesson, packets) {
     }
   }
 
-  function badgeOffset(x, y) {
-    const [left, top, width, height] = camera.current;
-    const offsets = [[0, -26], [0, 29], [83, 0], [-83, 0], [59, -26], [-59, -26], [59, 29], [-59, 29], [32, -54], [-32, -54], [36, 49], [-36, 49]];
-    return offsets.find(([dx, dy]) => {
-      const l = x + dx + badge.x - 5, r = l + badge.width + 10, t = y + dy + badge.y, b = t + badge.height;
-      return l >= left && r <= left + width && t >= top && b <= top + height && !nodeBoxes.some(([a, c, d, e]) => l < d && r > a && t < e && b > c);
-    }) ?? offsets[0];
+  function sizeBadge(badge, { badge: lines, badgeLabel, kind, locked }, below) {
+    const tag = badge.querySelector('.packet-tag'), fields = [...badge.querySelectorAll('tspan')];
+    const band = badge.querySelector('.packet-band'), body = badge.querySelector('.packet-body'), lock = badge.querySelector('.packet-lock');
+    tag.textContent = badgeLabel ?? kind.title;
+    fields.forEach((line, i) => { line.textContent = lines[i] ?? ''; });
+    const titleWidth = tag.getComputedTextLength();
+    const width = Math.max(titleWidth + (locked ? 13 : 0), ...fields.map(line => line.getComputedTextLength())) + 16;
+    const height = lines.length ? lines.length * 11 + 4 : 0;
+    const offset = below ? height + 28 : -13;
+    for (const rect of [body, band]) {
+      rect.setAttribute('x', -width / 2);
+      rect.setAttribute('width', width);
+    }
+    band.setAttribute('y', -height - 15);
+    body.setAttribute('y', -height);
+    body.setAttribute('height', height);
+    body.toggleAttribute('hidden', !height);
+    fields[0].parentElement.setAttribute('y', 10 - height);
+    tag.setAttribute('x', locked ? 6.5 : 0);
+    tag.setAttribute('y', -height - 4);
+    lock.setAttribute('transform', `translate(${-titleWidth / 2 - 2} ${-height - 7})`);
+    lock.toggleAttribute('hidden', !locked);
+    badge.setAttribute('transform', `translate(0 ${offset})`);
+    return offset;
   }
 
   function paint({ started, finished, running, elapsed }, unit, updatedNodes) {
@@ -104,7 +122,7 @@ export function mountScene(lesson, packets) {
     const old = lesson.steps[unit.step - 1]?.nodes ?? (unit.step === 0 ? step.closeup ?? [] : ids);
     const enteringAt = step.closeup ? zoomMs : 0;
     const entering = id => moving && running && unit.start && !old.includes(id);
-    const members = unit.members.map(i => {
+    const members = unit.members.filter(i => !folded.has(i)).map(i => {
       const packet = packets[i], route = routes[i], age = elapsed - packet.leadMs - route.flight;
       return { packet, route, age, i, flying: started && elapsed >= packet.leadMs && age <= (packet.outcome === 'dropped' ? 0 : 180) && !finished };
     });
@@ -127,23 +145,28 @@ export function mountScene(lesson, packets) {
       }
     }
     members.forEach(({ packet, route, age, flying, i }, slot) => {
-      const { group, dot, glow, badge, trails } = visual(slot);
+      const sprite = visual(slot), { group, dot, glyph, glow, drop, badge, trails } = sprite;
       group.removeAttribute('hidden');
       if (dot.dataset.packet !== String(i)) {
         dot.dataset.packet = i;
-        dot.setAttribute('aria-label', `检查报文 ${i + 1}：${packet.kind.title}`);
+        dot.setAttribute('aria-label', `检查报文 ${i + 1}：${packet.badgeLabel ?? packet.kind.title}`);
         group.dataset.tone = packet.kind.tone;
-        group.querySelector('.packet-tag').textContent = packet.kind.title;
-        group.querySelectorAll('.packet-label tspan').forEach((line, j) => { line.textContent = packet.badge[j] ?? ''; });
+        sprite.badgeY = sizeBadge(badge, packet, slot % 2);
       }
-      badge.toggleAttribute('hidden', slot > 0);
       dot.setAttribute('visibility', flying ? 'visible' : 'hidden');
       dot.setAttribute('tabindex', flying ? '0' : '-1');
       const flyTime = moving ? Math.min(route.flight, elapsed - packet.leadMs) : age >= 0 ? route.flight : route.flight / 2;
       const [x, y] = positionAt(route, flyTime);
+      const dropped = started && !finished && packet.outcome === 'dropped' && age >= 0 && age < 700;
+      drop.toggleAttribute('hidden', !dropped);
+      if (dropped) drop.setAttribute('transform', `translate(${x} ${y})`);
       if (flying) {
-        dot.setAttribute('transform', `translate(${x} ${y}) scale(${moving ? (1 - (1 - clamp(flyTime / 220)) ** 3) * (1 - clamp(age / 180) ** 3) : 1})`);
-        if (!slot) badge.setAttribute('transform', `translate(${badgeOffset(x, y).join(' ')})`);
+        const visibility = moving ? (1 - (1 - clamp(flyTime / 220)) ** 3) * (1 - clamp(age / 180) ** 3) : 1;
+        // A shared translation keeps the badge anchored while the glyph pulses.
+        dot.setAttribute('transform', `translate(${x} ${y})`);
+        glyph.setAttribute('transform', `scale(${visibility})`);
+        badge.setAttribute('opacity', visibility);
+        if (import.meta.env.DEV) console.assert(badge.transform.baseVal.getItem(0).matrix.f === sprite.badgeY, 'Packet badge changed its vertical offset in flight');
         trails.forEach((trail, j) => {
           const [tx, ty] = positionAt(route, flyTime - 70 * (j + 1));
           trail.setAttribute('cx', tx - x); trail.setAttribute('cy', ty - y);

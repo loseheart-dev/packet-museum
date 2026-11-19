@@ -23,7 +23,7 @@ export function mountWorkbench(lesson) {
   });
   const packetGroups = new Map(groups.flatMap(group => group.members.map(i => [i, group])));
   $('canvas').hidden = false;
-  const scene = mountScene(lesson, packets);
+  const scene = mountScene(lesson, packets, groups);
   const { units, stepStarts, packetUnits, stepElapsed } = lessonTimeline(lesson.steps, packets, scene.flights);
   const playback = createPlayback(units);
   const { state } = playback;
