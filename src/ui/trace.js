@@ -10,14 +10,13 @@ export function mountTrace(lesson, packets, labels, groups) {
   });
   const showMac = Boolean(lesson.linkAddresses);
   document.querySelectorAll('[data-link-address]').forEach(col => { col.hidden = !showMac; });
-  $('rows').innerHTML = `<tr id="empty-trace"><td colspan="${showMac ? 9 : 7}">线路上还没有数据包。</td></tr>${entries.map(({ members, packet }) => {
-    const i = members[0], last = members.at(-1);
+  $('rows').innerHTML = `<tr id="empty-trace"><td colspan="${showMac ? 9 : 7}">线路上还没有数据包。</td></tr>${entries.map(({ members, packet }, row) => {
+    const i = members[0], number = row + 1;
     const [from, to] = ends(packet).map(id => labels.get(id));
     const mac = showMac ? `<td>${escape(packet.link?.src ?? '—')}</td><td>${escape(packet.link?.dst ?? '—')}</td>` : '';
-    const number = i === last ? i + 1 : `${i + 1}–${last + 1}`;
     const bytes = members.reduce((sum, n) => sum + packets[n].bytes.length, 0);
     const length = members.length > 1 && bytes >= 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${bytes} B`;
-    return `<tr data-index="${i}"><td><button type="button" class="packet-number" data-tone="${packet.kind.tone}" aria-label="定位到报文 ${number}：${escape(packet.kind.label)}">${number}</button></td><td>${escape(packet.time)}</td><td>${escape(packet.src ?? from)}</td><td>${escape(packet.dst ?? to)}</td>${mac}<td>${escape(packet.protocol)}</td><td>${escape(packet.summary)}</td><td title="${bytes} B">${length}</td></tr>`;
+    return `<tr data-index="${i}"><td><button type="button" class="packet-number" data-tone="${packet.kind.tone}" aria-label="定位到第 ${number} 行：${escape(packet.kind.label)}">${number}</button></td><td>${escape(packet.time)}</td><td>${escape(packet.src ?? from)}</td><td>${escape(packet.dst ?? to)}</td>${mac}<td>${escape(packet.protocol)}</td><td>${escape(packet.summary)}</td><td title="${bytes} B">${length}</td></tr>`;
   }).join('')}`;
   const rows = [...$('rows').querySelectorAll('[data-index]')];
   const sequence = $('sequence');
