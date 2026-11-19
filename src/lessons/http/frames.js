@@ -6,7 +6,7 @@ const clientMac = '00:00:5e:00:53:10', routerMac = '00:00:5e:00:53:01';
 const pathTo = endpoint => ['client', 'router', 'internet', endpoint];
 
 function ethernetIPv4(src, dst, id, ttl, flags, protocol, payload, reply) {
-  return ethernet({ src: reply ? routerMac : clientMac, dst: reply ? clientMac : routerMac,
+  return ethernet({ src: reply ? routerMac : clientMac, dst: reply ? clientMac : routerMac, pad: true,
     payload: ipv4({ src, dst, id, ttl, flags, protocol, payload }) });
 }
 
@@ -60,16 +60,25 @@ const rows = [
   ['web', true, tcpFrames[1], 'TCP', '0.041s', '80 → 52344 [SYN, ACK] Seq=0 Ack=1', 'tcp', ['SYN-ACK', 'seq=0 ack=1']],
   ['web', false, tcpFrames[2], 'TCP', '0.058s', '52344 → 80 [ACK] Seq=1 Ack=1', 'tcp', ['ACK', 'seq=1 ack=1']],
   ['web', false, tcpFrames[3], 'HTTP', '0.058s', 'GET / HTTP/1.1', 'request', ['GET / HTTP/1.1', 'Host: www.example.com'], 'http'],
-  ['web', true, response, 'HTTP', '0.076s', 'HTTP/1.1 200 OK (text/html)，9 个报文段', 'reply', ['HTTP/1.1 200 OK', '12.2 KB，分 9 个报文段']],
 ];
 
-export const frames = rows.map(([endpoint, reply, bytes, protocol, time, summary, category, badge, application], i) => {
+export const responseIds = [];
+const { client, web } = addresses;
+for (let offset = 0, i = 0; offset < response.length; offset += 1460, i++) {
+  const payload = response.subarray(offset, offset + 1460), last = offset + payload.length === response.length;
+  const segment = tcp({ src: web, dst: client, srcPort: 80, dstPort: 52344,
+    seq: 2474976681 + offset, ack: 59972903 + request.length, flags: last ? 0x18 : 0x10, window: 501, payload });
+  responseIds.push(`http-${rows.length + 1}`);
+  rows.push(['web', true, ethernetIPv4(web, client, 3588 + i, 52, 0x4000, 6, segment, true), 'TCP', '0.076s',
+    `HTTP 响应 · TCP 段 ${i + 1}/9`, 'reply', ['HTTP/1.1 200 OK', '12.2 KB，分 9 个报文段'], undefined, 900 + i * 110]);
+}
+
+export const frames = rows.map(([endpoint, reply, bytes, protocol, time, summary, category, badge, application, leadMs], i) => {
   const path = pathTo(endpoint);
   if (reply) path.reverse();
   return {
     id: `http-${i + 1}`, path, bytes, protocol, time, summary, category, badge, application,
-    // shortcut: Inspect the reassembled message, not a fabricated jumbo TCP frame; upgrade when rows can group real segments.
-    ...(bytes === response ? { format: 'http', addresses: { src: addresses.web, dst: addresses.client } } : {}),
     ...(i === 0 ? { leadMs: 2400 } : {}),
+    ...(leadMs !== undefined ? { leadMs } : {}),
   };
 });
