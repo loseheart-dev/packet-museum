@@ -29,7 +29,8 @@ export function mountWorkbench(lesson) {
   const { state } = playback;
   const trace = mountTrace(lesson, packets, labels, groups);
   const renderBytes = mountInspector(on, labels);
-  let frame = null, last = null, view = 'network', inspected, traceKey;
+  let frame = null, last = null, view = 'network', inspected, traceKey, completedSteps = 0;
+  const stepButtons = [...$('steps').querySelectorAll('button')];
   const rate = $('rate');
   let timeScale;
   function updateRate() {
@@ -94,13 +95,18 @@ export function mountWorkbench(lesson) {
       $('step-subtitle').textContent = subtitle ?? '';
       $('step-text').textContent = text;
       $('step-facts').innerHTML = facts(items);
-      for (const button of $('steps').querySelectorAll('button')) {
-        const i = Number(button.dataset.step), done = i < step;
-        button.classList.toggle('done', done);
-        button.querySelector('.step-num').textContent = done ? '✓' : i + 1;
+      const completed = state.finished ? stepButtons.length : state.started ? step : 0;
+      stepButtons.forEach((button, i) => {
+        const done = i < completed, active = state.started && !state.finished && i === step;
+        const delay = done && i >= completedSteps ? (i - completedSteps) * 90
+          : active && !button.hasAttribute('aria-current') ? Math.max(0, completed - completedSteps) * 90
+          : !done && i < completedSteps ? (completedSteps - 1 - i) * 50 : 0;
+        button.parentElement.style.setProperty('--step-delay', `${delay}ms`);
+        button.parentElement.classList.toggle('done', done);
         button.setAttribute('aria-label', `步骤 ${i + 1}：${lesson.steps[i].title}${done ? '，已完成' : ''}`);
-        if (state.started && i === step) button.setAttribute('aria-current', 'step'); else button.removeAttribute('aria-current');
-      }
+        if (active) button.setAttribute('aria-current', 'step'); else button.removeAttribute('aria-current');
+      });
+      completedSteps = completed;
     }
     paint(true);
     $('prev').disabled = !state.started || state.index === 0;

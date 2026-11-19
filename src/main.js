@@ -20,8 +20,8 @@ function catalogMarkup(lesson) {
     const label = `<span class="course-symbol" aria-hidden="true">${available ? '●' : '○'}</span><span><b>${escape(title)}</b><small>${escape(subtitle)}</small></span>`;
     const link = available ? `<a href="${escape(routeFor(id))}" class="course-title">${label}</a>` : `<div class="course-title" aria-disabled="true">${label}</div>`;
     if (!active) return `<li class="course">${link}</li>`;
-    const steps = lesson.steps.map(({ title, subtitle }, i) => `<li><button type="button" data-step="${i}"><span class="step-num" aria-hidden="true">${i + 1}</span><span><span class="step-title">${escape(title)}</span>${subtitle ? `<small>${escape(subtitle)}</small>` : ''}</span></button></li>`).join('');
-    return `<li class="course"><button type="button" class="course-title current" id="active-course" aria-controls="steps">${label}<span id="course-chevron" class="chevron" aria-hidden="true"></span></button><ol class="steps" id="steps">${steps}</ol></li>`;
+    const steps = lesson.steps.map(({ title, subtitle }, i) => `<li style="--step-index:${i}"><button type="button" data-step="${i}"><span class="step-num" aria-hidden="true"><span>${i + 1}</span><svg viewBox="0 0 12 12" width="11" height="11"><path pathLength="1" d="m2 6 2.5 2.5 5.5-5.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="step-text"><span class="step-title">${escape(title)}</span>${subtitle ? `<small>${escape(subtitle)}</small>` : ''}</span></button></li>`).join('');
+    return `<li class="course"><button type="button" class="course-title current" id="active-course" aria-controls="steps">${label}<span id="course-chevron" class="chevron" aria-hidden="true"></span></button><div class="steps-wrap"><div class="steps-clip"><ol class="steps" id="steps">${steps}</ol></div></div></li>`;
   }).join('');
 }
 
@@ -36,7 +36,7 @@ function renderCatalog() {
   });
   if (current) {
     $('no-results').hidden = count > 0;
-    $('steps').hidden = !expanded;
+    $('steps').inert = !expanded;
     $('active-course').setAttribute('aria-expanded', expanded);
     $('course-chevron').textContent = expanded ? '⌄' : '›';
   } else $('route-no-results').hidden = count > 0 || $('route-courses').hidden;
