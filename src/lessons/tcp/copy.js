@@ -1,3 +1,4 @@
+// index-CNPseYOQ.js + zh-AH-lIMHP.js
 export const overview = {
   title: 'TCP', subtitle: '传输控制',
   text: 'TCP 把互联网“尽力而为”的数据包投递，变成可靠、有序的字节流。它给每个字节编号，确认收到的内容，重传丢失的部分，并控制发送方的节奏，使对方和网络都不至于被压垮。',
@@ -9,20 +10,20 @@ export const steps = [
     text: 'curl 已经知道服务器的地址。在传输任何数据之前，双方各自选定起始序列号并加以确认：SYN、SYN-ACK、ACK。这里的编号是相对值；真实编号从一个随机值开始。',
     facts: [['服务器', '203.0.113.10，80 端口'], ['客户端端口', '49152（临时端口）'], ['标志', 'SYN → SYN-ACK → ACK']] },
   { id: 'send', title: '发送数据', subtitle: '每个字节都有编号',
-    text: 'curl sends its 78-byte HTTP request: bytes 1 to 78. The server’s ACK number, 79, is the next byte it expects, which means everything before it has arrived.',
-    facts: [['Sent', '78 bytes (seq 1–78)'], ['ACK', '79 = next byte expected'], ['Flags', 'PSH, ACK']] },
+    text: 'curl 发送 78 字节的 HTTP 请求：字节 1 到 78。服务器的确认号 79 是它期待的下一个字节，意味着在它之前的都已收到。',
+    facts: [['已发送', '78 字节（seq 1–78）'], ['ACK', '79 = 期待的下一个字节'], ['标志', 'PSH, ACK']] },
   { id: 'loss', title: '返回两个报文段', subtitle: '其中一个丢失了',
-    text: 'The server answers with 2,920 bytes: two full segments of 1,460 bytes, the most that fits in one packet here, sent back to back. The first is dropped somewhere on the internet; the second gets through.',
-    facts: [['Segment 1', 'bytes 1–1460 (lost)'], ['Segment 2', 'bytes 1461–2920'], ['Segment size', '1,460 bytes (MSS)']] },
+    text: '服务器用 2,920 字节回应：两个 1,460 字节的完整报文段（这是这里一个数据包能装下的最大值），一个接一个发出。第一个在互联网上某处被丢弃；第二个顺利到达。',
+    facts: [['报文段 1', '字节 1–1460（丢失）'], ['报文段 2', '字节 1461–2920'], ['报文段大小', '1,460 字节（MSS）']] },
   { id: 'sack', title: '发现缺口', subtitle: '带 SACK 的重复 ACK',
-    text: 'Bytes 1461–2920 arrive, but 1–1460 never did. An ACK can only count bytes received in order, so the laptop repeats ACK 1 at once and adds a SACK block saying it already holds 1461–2920.',
-    facts: [['ACK', '1 (still waiting for byte 1)'], ['SACK', 'holds bytes 1461–2920'], ['Sent', 'At once, not delayed']] },
+    text: '字节 1461–2920 到了，但 1–1460 一直没到。ACK 只能计算按顺序收到的字节，所以笔记本电脑立即重复 ACK 1，并附上一个 SACK 块，说明它已经有了 1461–2920。',
+    facts: [['ACK', '1（仍在等待字节 1）'], ['SACK', '已有字节 1461–2920'], ['已发送', '立即发送，不延迟']] },
   { id: 'resend', title: '重传缺口', subtitle: '只重传缺失的字节',
-    text: 'The SACK tells the server exactly what is missing, so it resends just segment 1, and the laptop acknowledges everything. Had no ACK come back at all, timers would have stepped in: a probe after about two round trips, then a retransmission timeout (at least 200 ms on Linux).',
-    facts: [['Resent', 'bytes 1–1460 only'], ['Next ACK', '2921 (everything)'], ['curl saw', 'Every byte, in order']] },
+    text: 'SACK 准确告诉服务器缺了什么，所以它只重传报文段 1，笔记本电脑随后确认了全部数据。如果根本没有 ACK 回来，就会由计时器接手：先在大约两个往返之后发送探测，再由重传超时处理（在 Linux 上至少 200 ms）。',
+    facts: [['已重传', '仅字节 1–1460'], ['下一个 ACK', '2921（全部）'], ['curl 看到的', '每个字节，按顺序']] },
   { id: 'close', title: '关闭连接', subtitle: '双方各自道别',
-    text: 'curl is done, so it closes. Each direction closes on its own: the laptop sends FIN and the server acknowledges it, then the server sends its own FIN and the laptop acknowledges that. The laptop keeps the connection’s details for a while (TIME-WAIT).',
-    facts: [['Closed by', 'A FIN from each side'], ['Order', 'FIN → ACK → FIN → ACK'], ['Then', 'Laptop waits (TIME-WAIT)']] },
+    text: 'curl 用完了，于是关闭连接。两个方向各自关闭：笔记本电脑发送 FIN，服务器确认；然后服务器发送自己的 FIN，笔记本电脑确认。笔记本电脑会把连接的信息保留一段时间（TIME-WAIT）。',
+    facts: [['关闭方式', '双方各发一个 FIN'], ['顺序', 'FIN → ACK → FIN → ACK'], ['之后', '笔记本电脑等待（TIME-WAIT）']] },
 ];
 
 export const outro = {
