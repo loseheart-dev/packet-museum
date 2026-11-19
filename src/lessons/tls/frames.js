@@ -32,32 +32,37 @@ const serverHello = tlsRecord({ type: 22, payload: tlsHello({ server: true, rand
 const ccs = tlsRecord({ type: 20, payload: uint(1, 1) });
 const encrypted = (length, seed) => tlsRecord({ type: 23, payload: sample(length, seed) });
 const synOptions = Uint8Array.of(2, 4, 5, 180, 1, 3, 3, 8, 1, 1, 4, 2);
+const serverFlight = concat(serverHello, ccs, encrypted(2724, 7));
 
-// shortcut: one complete synthetic record per encrypted handshake segment; keep the original record split when TCP reassembly is available.
 const packets = [
   [false, 0x02], [true, 0x12], [false, 0x10],
-  [false, 0x18, clientHello],
-  [true, 0x10, concat(serverHello, ccs, encrypted(234, 7))],
-  [true, 0x10, encrypted(1455, 8)], [true, 0x18, encrypted(1025, 9)],
+  [false, 0x18, clientHello, 'split'],
+  [true, 0x10, serverFlight.subarray(0, 1460), 'partial'],
+  [true, 0x10, serverFlight.subarray(1460, 2920), 'partial'],
+  [true, 0x18, serverFlight.subarray(2920), 'partial'],
   [false, 0x18, concat(ccs, encrypted(53, 10))],
   [false, 0x18, encrypted(682, 11)],
   [true, 0x18, concat(encrypted(234, 12), encrypted(234, 13))],
-  [true, 0x18, encrypted(12705, 14)],
+  [true, 0x18, encrypted(12705, 14), 'split'],
   [true, 0x18, encrypted(19, 15)],
   [true, 0x11], [false, 0x11],
 ];
 
 const mac = ['00:00:5e:00:53:10', '00:00:5e:00:53:01'];
 const sequence = [0, 0];
-export const transportFrames = packets.map(([fromServer, flags, payload], i) => {
+let ipID = 0;
+export const transportFrames = packets.flatMap(([fromServer, flags, payload, transmission], row) => {
+  const chunks = transmission === 'split' ? Array.from({ length: Math.ceil(payload.length / 1460) }, (_, i) => payload.subarray(i * 1460, (i + 1) * 1460)) : [payload];
   const dir = Number(fromServer), peer = 1 - dir;
   const src = fromServer ? addresses.web : addresses.client, dst = fromServer ? addresses.client : addresses.web;
   const srcPort = fromServer ? 443 : 52411, dstPort = fromServer ? 52411 : 443;
-  const segment = tcp({ src, dst, srcPort, dstPort, seq: sequence[dir], ack: flags & 0x10 ? sequence[peer] : 0,
-    flags, options: flags & 0x02 ? synOptions : undefined, payload,
+  return chunks.map((data, part) => {
+    const segment = tcp({ src, dst, srcPort, dstPort, seq: sequence[dir], ack: flags & 0x10 ? sequence[peer] : 0,
+      flags: part < chunks.length - 1 ? flags & ~0x08 : flags, options: flags & 0x02 ? synOptions : undefined, payload: data,
+    });
+    sequence[dir] += (data?.length ?? 0) + Number(Boolean(flags & 0x03));
+    return { row, part, fromServer, protocol: data ? 'TLSv1.3' : 'TCP', bytes: ethernet({ src: mac[dir], dst: mac[peer], pad: true,
+      payload: ipv4({ src, dst, protocol: 6, payload: segment, id: ++ipID, ttl: fromServer ? 55 : 128 }),
+    }), ...(data && !transmission ? { application: 'tls' } : {}) };
   });
-  sequence[dir] += (payload?.length ?? 0) + Number(Boolean(flags & 0x03));
-  return { fromServer, bytes: ethernet({ src: mac[dir], dst: mac[peer],
-    payload: ipv4({ src, dst, protocol: 6, payload: segment, id: i + 1, ttl: fromServer ? 55 : 128 }),
-  }), ...(payload ? { application: 'tls' } : {}) };
 });
