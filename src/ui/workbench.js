@@ -45,6 +45,17 @@ export function mountWorkbench(lesson) {
   $('overview-card').innerHTML = `<h3>${escape(overview.title)}</h3>${overview.subtitle ? `<p class="subtitle">${escape(overview.subtitle)}</p>` : ''}<p>${escape(overview.text)}</p><dl class="facts">${facts(overview.facts)}</dl>`;
   $('packet-key').innerHTML = Object.values(legend).map(({ label, tone }) => `<li data-tone="${tone}">${escape(label)}</li>`).join('');
 
+  const packetView = $('packet-view'), sequence = $('sequence');
+  packetView.querySelector('.seq-close')?.remove();
+  const closeSequencePacket = document.createElement('button');
+  closeSequencePacket.type = 'button';
+  closeSequencePacket.hidden = true;
+  closeSequencePacket.className = 'seq-close';
+  closeSequencePacket.setAttribute('aria-label', '关闭数据包检查器');
+  closeSequencePacket.textContent = '×';
+  packetView.prepend(closeSequencePacket);
+  let sequenceTrigger;
+
   function showDetails(show) {
     $('overview-card').hidden = show;
     $('detail-card').hidden = $('show-overview').hidden = !show;
@@ -76,13 +87,12 @@ export function mountWorkbench(lesson) {
     const key = `${state.started}:${state.index}:${visible.map(Number).join('')}:${[...visibleEvents].join(',')}`;
     if (forceTrace || key !== traceKey) {
       traceKey = key;
-      trace.render(state, unit, visible, new Set(state.started ? unit.members : []), visibleEvents);
+      const active = new Set(state.started ? unit.members : []);
+      trace.render(visible, active);
+      if (view === 'sequence') trace.sequence.render(state, unit, visible, active, visibleEvents, updatedNodes);
     }
     if (view === 'network') scene.paint(state, unit, updatedNodes);
-    if (view === 'sequence') for (const i of unit.members) {
-      const fraction = (state.elapsed - packets[i].leadMs) / scene.flights[i];
-      trace.progress(i, Math.max(0, Math.min(1, fraction)), state.started && !motion.matches);
-    }
+    if (view === 'sequence') trace.sequence.animate(state, unit.members, scene.flights);
   }
 
   function render(snap = false, previousStep) {
@@ -144,6 +154,7 @@ export function mountWorkbench(lesson) {
   }
 
   function setView(next, focus = false, packet = currentPacket(), reassembled = false) {
+    closeSequenceInspector();
     if (next === 'packet' && view !== 'packet') pause();
     view = next;
     $('canvas').hidden = next !== 'network';
@@ -161,6 +172,30 @@ export function mountWorkbench(lesson) {
     }
     if (focus) $(`show-${next}`).focus();
   }
+
+  function inspectFromSequence(index, trigger) {
+    const group = packetGroups.get(index);
+    pause();
+    sequenceTrigger = trigger;
+    inspected = { packet: packets[index], group };
+    sequence.inert = true;
+    packetView.classList.add('seq-inspector');
+    packetView.hidden = closeSequencePacket.hidden = false;
+    trace.select(index);
+    renderBytes(inspected.packet, group, group && !group.separateRows);
+    closeSequencePacket.focus({ preventScroll: true });
+  }
+
+  function closeSequenceInspector(restore = false) {
+    if (!sequenceTrigger) return;
+    packetView.classList.remove('seq-inspector');
+    packetView.hidden = closeSequencePacket.hidden = true;
+    sequence.inert = false;
+    trace.select();
+    if (restore) (sequenceTrigger.isConnected ? sequenceTrigger : $('show-sequence')).focus({ preventScroll: true });
+    sequenceTrigger = undefined;
+  }
+  on(closeSequencePacket, 'click', () => closeSequenceInspector(true));
 
   function jump(i, autoplay = false) {
     pause(); playback.jump(i, autoplay);
@@ -180,6 +215,7 @@ export function mountWorkbench(lesson) {
     const row = e.target.closest('[data-index]');
     if (row) {
       const index = Number(row.dataset.index), group = packetGroups.get(index), reassembled = group && !group.separateRows;
+      if (view === 'sequence') return inspectFromSequence(index, row.querySelector('button'));
       jump(packetUnits[reassembled ? group.members.at(-1) : index]);
       if (group || view === 'packet') setView('packet', false, index, reassembled);
     }
@@ -194,7 +230,7 @@ export function mountWorkbench(lesson) {
   on($('packet-dots'), 'keydown', e => { if (e.key === 'Enter' || e.key === ' ') inspect(e); });
   function inspectSequence(e) {
     const row = e.target.closest('[data-seq]');
-    if (row) { e.preventDefault(); setView('packet', true, Number(row.dataset.seq)); }
+    if (row) { e.preventDefault(); inspectFromSequence(Number(row.dataset.seq), row); }
   }
   on($('sequence'), 'click', inspectSequence);
   on($('sequence'), 'keydown', e => { if (e.key === 'Enter' || e.key === ' ') inspectSequence(e); });
@@ -202,21 +238,26 @@ export function mountWorkbench(lesson) {
   on($('prev'), 'click', () => jump(state.index - 1));
   const next = () => jump(state.started ? state.index + 1 : 0);
   on($('next'), 'click', next);
-  on($('reset'), 'click', () => { pause(); playback.reset(); showDetails(false); render(true); if (view === 'packet') setView('packet'); });
-  on(mobile, 'change', () => { trace.drawSequence(); paint(true); if (view === 'packet') renderBytes(inspected.packet, inspected.group, false, true); });
+  on($('reset'), 'click', () => { closeSequenceInspector(); pause(); playback.reset(); showDetails(false); render(true); if (view === 'packet') setView('packet'); });
+  on(mobile, 'change', () => { paint(true); if (view === 'packet' || sequenceTrigger) renderBytes(inspected.packet, inspected.group, false, true); });
   on(motion, 'change', () => paint());
   on(document, 'visibilitychange', () => { if (document.hidden && state.running) pause(); });
   on(document, 'keydown', e => {
     if (e.defaultPrevented || e.altKey || e.metaKey || e.ctrlKey || $('drawer').open || e.target.closest('input,select,textarea')) return;
+    if (e.key === 'Escape' && sequenceTrigger) { e.preventDefault(); closeSequenceInspector(true); }
     if (e.key === ' ' && !e.target.closest('button,a,[role=button]')) { e.preventDefault(); play(); }
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); if (e.key === 'ArrowRight') next(); else if (state.started) jump(state.index - 1); }
   });
 
-  const resize = new ResizeObserver(() => { if (view === 'network') { scene.aim(state, activeUnit(), !state.running); paint(); } });
+  const resize = new ResizeObserver(() => {
+    if (view === 'network') { scene.aim(state, activeUnit(), !state.running); paint(); }
+    if (view === 'sequence') paint(true);
+  });
   resize.observe($('network-svg'));
+  resize.observe(sequence);
   setView('network'); showDetails(false); render(true);
   return {
     jumpTo(id) { const index = lesson.steps.findIndex(step => step.id === id); if (index >= 0) jump(stepStarts[index]); },
-    destroy() { pause(); resize.disconnect(); scope.abort(); },
+    destroy() { closeSequenceInspector(); pause(); resize.disconnect(); scope.abort(); },
   };
 }
