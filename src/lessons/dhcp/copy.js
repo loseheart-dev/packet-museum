@@ -1,59 +1,61 @@
-// Protocol Explorer: index-CNPseYOQ.js, DHCP lesson.
+// Protocol Explorer: index-CNPseYOQ.js + zh-AH-lIMHP.js.
 export const overview = {
-  title: 'DHCP', subtitle: 'Dynamic Host Configuration Protocol',
-  text: 'DHCP hands a device everything it needs to use a network: an IP address, the subnet mask, the router to send traffic through and the DNS servers to ask. Addresses are leased for a set time and renewed while the device stays on the network.',
-  facts: [['Layer', 'Application (Layer 7)'], ['Ports', 'UDP 67 (server), 68 (client)'], ['Hands out', 'IP, mask, gateway, DNS'], ['Exchange', 'Discover, Offer, Request, Ack'], ['Lease', 'Renewed at half its time'], ['Defined In', 'RFC 2131, RFC 2132']],
+  title: 'DHCP', subtitle: '动态主机配置协议',
+  text: 'DHCP 把设备使用网络所需的一切都交给它：IP 地址、子网掩码、发送流量所经的路由器，以及要询问的 DNS 服务器。地址按固定期限租出，只要设备还在网络上就会续租。',
+  facts: [['层', '应用层（第 7 层）'], ['端口', 'UDP 67（服务器），68（客户端）'], ['分配', 'IP、掩码、网关、DNS'], ['交换', '发现、提供、请求、确认'], ['租约', '过半时续租'], ['定义于', 'RFC 2131, RFC 2132']],
 };
 
 export const intro = {
-  text: 'The laptop has just connected. It has a MAC address built in, but no IP address, no gateway and no DNS server, so it can’t talk to anything beyond its own network yet. It asks for them with DHCP.',
-  facts: [['IP address', 'None (uses 0.0.0.0)'], ['MAC address', '00:00:5e:00:53:10']],
+  text: '笔记本电脑刚刚连上。它有内置的 MAC 地址，但没有 IP 地址、网关和 DNS 服务器，所以还无法与自己网络之外的任何东西通信。它用 DHCP 来请求这些。',
+  facts: [['IP 地址', '无（使用 0.0.0.0）'], ['MAC 地址', '00:00:5e:00:53:10']],
 };
 
 export const outro = {
-  title: 'On the network', subtitle: 'Leased, and kept up to date',
-  text: 'Four messages took the laptop from no address to a working configuration, and halfway through the 24-hour lease it renewed it with a direct request to the router. Press REPLAY to watch it again.',
-  facts: [['Messages', '4 to join, 2 per renewal'], ['Address', '192.168.1.10/24'], ['Lease', '24 h, renewed at 12 h'], ['Ports', 'UDP 68 → 67']],
+  title: '已在网络上', subtitle: '已租用，并保持更新',
+  text: '四条消息让笔记本电脑从没有地址变成配置完整可用；在 24 小时租约过半时，它又直接向路由器发出请求完成续租。按“重播”可以再看一遍。',
+  facts: [['消息', '加入 4 条，每次续租 2 条'], ['地址', '192.168.1.10/24'], ['租约', '24 小时，12 小时时续租'], ['端口', 'UDP 68 → 67']],
 };
 
 export const steps = [
   {
-    id: 'discover', title: 'Discover', subtitle: 'Shout to the whole network',
-    text: 'Without an address of its own, the laptop sends from 0.0.0.0 to the broadcast address 255.255.255.255, so every device on the local network receives it. Only DHCP servers answer.',
-    facts: [['From', '0.0.0.0, UDP port 68'], ['To', '255.255.255.255, port 67'], ['Carries', 'MAC, transaction ID']],
+    id: 'discover', title: '发现', subtitle: '向整个网络喊话',
+    text: '由于还没有自己的地址，笔记本电脑从 0.0.0.0 发往广播地址 255.255.255.255，所以本地网络上的每台设备都会收到。只有 DHCP 服务器会回答。',
+    facts: [['从', '0.0.0.0，UDP 端口 68'], ['到', '255.255.255.255，端口 67'], ['携带', 'MAC，事务 ID']],
     frames: ['dhcp-1'], closeup: ['client'],
   },
   {
-    id: 'offer', title: 'Offer', subtitle: 'The router proposes an address',
-    text: 'The router’s DHCP server picks a free address and offers it with the rest of the settings. The laptop can’t use an IP address yet, so the offer goes straight to its MAC address (some clients ask for a broadcast instead).',
-    facts: [['Offered', '192.168.1.10/24'], ['Gateway, DNS', '192.168.1.1, 8.8.8.8'], ['Lease', '86,400 s (24 h)']],
+    id: 'offer', title: '提供', subtitle: '路由器提出一个地址',
+    text: '路由器的 DHCP 服务器挑一个空闲地址，连同其他设置一起提供。笔记本电脑还不能使用 IP 地址，所以这个提供直接发往它的 MAC 地址（有些客户端会要求改用广播）。',
+    facts: [['提供的', '192.168.1.10/24'], ['网关，DNS', '192.168.1.1, 8.8.8.8'], ['租约', '86,400 秒（24 小时）']],
     frames: ['dhcp-2'],
   },
   {
-    id: 'request', title: 'Request', subtitle: 'Accept, out loud',
-    text: 'The laptop asks for the offered address, naming the server it chose. It still broadcasts, so any other DHCP server that made an offer learns it wasn’t picked and can release its address.',
-    facts: [['Requests', '192.168.1.10'], ['Chosen server', '192.168.1.1'], ['Sent to', '255.255.255.255']],
+    id: 'request', title: '请求', subtitle: '公开地接受',
+    text: '笔记本电脑请求所提供的地址，并点名它选中的服务器。它仍然使用广播，这样其他提供过地址的 DHCP 服务器就知道自己没被选中，可以释放那个地址。',
+    facts: [['请求', '192.168.1.10'], ['选中的服务器', '192.168.1.1'], ['发送给', '255.255.255.255']],
     frames: ['dhcp-3'],
   },
   {
-    id: 'acknowledge', title: 'Acknowledge', subtitle: 'The address is the laptop’s',
-    text: 'The server confirms, and the laptop configures its address, mask, gateway and DNS server. Many systems first check with ARP that no other device is already using the address.',
-    facts: [['Address', '192.168.1.10/24'], ['Gateway', '192.168.1.1'], ['DNS server', '8.8.8.8']],
+    id: 'acknowledge', title: '确认', subtitle: '地址归笔记本电脑了',
+    text: '服务器确认后，笔记本电脑配置好地址、掩码、网关和 DNS 服务器。许多系统会先用 ARP 检查有没有别的设备已经在用这个地址。',
+    facts: [['地址', '192.168.1.10/24'], ['网关', '192.168.1.1'], ['DNS 服务器', '8.8.8.8']],
     frames: ['dhcp-4'],
   },
   {
-    id: 'renew', title: 'Renew', subtitle: 'Halfway through the lease',
-    text: 'Twelve hours later, half the lease has passed. The laptop now has an address, so it asks the router directly to extend the lease, and the router resets it to 24 hours. If the router didn’t answer, it would broadcast at 87.5%.',
-    facts: [['When', '50% of lease (T1 = 12 h)'], ['Sent to', 'The router (unicast)'], ['If unanswered', 'Broadcast at 87.5% (T2)']],
+    id: 'renew', title: '续租', subtitle: '租期过半时',
+    text: '十二小时后，租期过了一半。笔记本电脑现在有了地址，所以直接请求路由器延长租约，路由器把它重新设为 24 小时。如果路由器没有回答，它会在 87.5% 时广播。',
+    facts: [['何时', '租期的 50%（T1 = 12 小时）'], ['发送给', '路由器（单播）'], ['若无回答', '在 87.5% 时广播（T2）']],
     frames: ['dhcp-5', 'dhcp-6'], wide: true,
   },
 ];
 
+export const messageLabels = { discover: '发现', offer: '提供', request: '请求', ack: '确认' };
+
 export const packets = [
-  ['0.000s', 'Discover', ['0.0.0.0 → 255.255.255.255', 'any DHCP server out there?']],
-  ['0.004s', 'Offer', ['offer: 192.168.1.10/24', 'gateway, DNS, lease 24 h']],
-  ['0.006s', 'Request', ['I’ll take 192.168.1.10', 'from server 192.168.1.1']],
-  ['0.009s', 'ACK', ['192.168.1.10 is yours', 'for 24 hours']],
-  ['43200.000s', 'Request', ['renew 192.168.1.10', 'sent straight to 192.168.1.1']],
-  ['43200.003s', 'ACK', ['lease renewed', 'another 24 hours']],
+  ['0.000s', 'discover', ['0.0.0.0 → 255.255.255.255', '有 DHCP 服务器吗？']],
+  ['0.004s', 'offer', ['提供：192.168.1.10/24', '网关，DNS，租期 24 小时']],
+  ['0.006s', 'request', ['我要 192.168.1.10', '来自服务器 192.168.1.1']],
+  ['0.009s', 'ack', ['192.168.1.10 归你了', '为期 24 小时']],
+  ['43200.000s', 'request', ['续租 192.168.1.10', '直接发往 192.168.1.1']],
+  ['43200.003s', 'ack', ['租约已续', '再续 24 小时']],
 ];
