@@ -1,0 +1,31 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createPlayback } from '../src/playback.js';
+
+test('播放、暂停、抵达、越界定位、完成与重播', () => {
+  const player = createPlayback([{ leadMs: 10, holdMs: 5 }, { leadMs: 10, holdMs: 5 }], [10, 15]);
+  assert.equal(player.revealed(), 1);
+  player.play();
+  assert.equal(player.revealed(), -1);
+  player.advance(15);
+  assert.equal(player.revealed(), 0);
+  assert.equal(player.progress(), .5);
+  player.pause(); player.advance(100);
+  assert.equal(player.state.elapsed, 15);
+  player.play(); player.advance(10);
+  assert.equal(player.state.index, 1);
+  assert.equal(player.revealed(), 0);
+  player.advance(100);
+  assert(player.state.finished && !player.state.running);
+  player.play();
+  assert.equal(player.state.index, 0);
+  assert(!player.state.finished && player.state.running);
+  player.jump(99);
+  assert.equal(player.state.index, 1);
+  assert.equal(player.progress(), 1);
+  player.jump(-99, true);
+  assert.equal(player.state.index, 0);
+  assert.equal(player.progress(), 0);
+  player.reset();
+  assert.equal(player.revealed(), 1);
+});
