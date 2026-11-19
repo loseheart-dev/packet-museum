@@ -13,19 +13,24 @@ const links = [
   { nodes: ['router', 'internet'], points: [[328, 230], [452, 290]] },
   { nodes: ['internet', 'web'], points: [[531, 257], [617, 142]] },
 ];
-// shortcut: 现有引擎要求每步有帧，支持纯讲解步骤后把请求移回 ARP 步骤。
-const stepFrames = [['arp-request'], ['arp-reply'], ['syn-lan'], ['syn-wan', 'syn-web'], ['reply-web', 'reply-wan', 'reply-lan']];
+const stepFrames = [[], ['arp-request', 'arp-reply'], ['syn-lan'], ['syn-wan'], ['reply-web', 'reply-lan']];
+const notes = [
+  [{ node: 'client', text: '203.0.113.10 不在本地' }],
+  [], [],
+  [{ node: 'web', after: 'syn-wan', text: '以 TTL 116 到达' }],
+  [{ node: 'router', after: 'reply-web', text: 'NAT: 40112 → 192.168.1.10' }],
+];
 
 export default {
   meta: { id: 'ipv4', title: 'IP', subtitle: overview.subtitle, group: 1, order: 10, layer: 3 },
   overview, outro, nodes, links, frames,
   legend: {
-    arp: { label: 'ARP', tone: 'query' },
+    arp: { label: 'ARP', tone: 'navy' },
     outgoing: { label: '发出的数据包', title: 'IP 数据包', tone: 'referral' },
-    reply: { label: '回复', title: '应答', tone: 'reply' },
+    reply: { label: '回复', title: '应答', tone: 'violet' },
   },
   steps: steps.map((step, i) => ({
-    ...step, frames: stepFrames[i], ...(i < 3 ? { nodes: local } : { wide: true }),
+    ...step, frames: stepFrames[i], events: notes[i], ...(i < 3 ? { nodes: local } : { wide: true }),
     ...(i === 0 ? { closeup: ['client'] } : {}),
   })),
 };

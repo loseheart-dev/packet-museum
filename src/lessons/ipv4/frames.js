@@ -7,9 +7,9 @@ const mac = {
   isp: '00:00:5e:00:53:fe', web: '00:00:5e:00:53:40', webRouter: '00:00:5e:00:53:80',
 };
 
-const request = ethernet({ src: mac.client, dst: 'ff:ff:ff:ff:ff:ff', type: 0x0806,
+const request = ethernet({ src: mac.client, dst: 'ff:ff:ff:ff:ff:ff', type: 0x0806, pad: true,
   payload: arp({ operation: 1, senderMac: mac.client, senderIp: client, targetIp: router }) });
-const response = ethernet({ src: mac.lan, dst: mac.client, type: 0x0806,
+const response = ethernet({ src: mac.lan, dst: mac.client, type: 0x0806, pad: true,
   payload: arp({ operation: 2, senderMac: mac.lan, senderIp: router, targetMac: mac.client, targetIp: client }) });
 
 const syn = [2, 4, 0x05, 0xb4, 1, 3, 3, 8, 1, 1, 4, 2];
@@ -27,19 +27,15 @@ function segment(srcMac, dstMac, ttl, translated, reply = false) {
 
 export const frames = [
   ['arp-request', ['client', 'router'], '0.000s', 'Who has 192.168.1.1? Tell 192.168.1.10',
-    ['谁有 192.168.1.1？', '请告诉 192.168.1.10'], request, 'arp', 2600],
+    ['谁有 192.168.1.1？', '请告诉 192.168.1.10'], request, 'arp', 1250],
   ['arp-reply', ['router', 'client'], '0.001s', `192.168.1.1 is at ${mac.lan}`,
-    ['192.168.1.1 is at', mac.lan], response, 'arp', 1300],
+    ['192.168.1.1 的 MAC', mac.lan], response, 'arp', 1300],
   ['syn-lan', ['client', 'router'], '0.002s', 'TTL 128 · 52344 → 443 [SYN]',
     ['192.168.1.10 → 203.0.113.10', 'TTL 128 · 协议 TCP'], segment(mac.client, mac.lan, 128, false), 'outgoing', 1250],
-  ['syn-wan', ['router', 'internet'], '0.003s', 'TTL 127 · 40112 → 443 [SYN]（NAT 之后）',
+  ['syn-wan', ['router', 'internet', 'web'], '0.003s', 'TTL 127 · 40112 → 443 [SYN]（NAT 之后）',
     ['198.51.100.7 → 203.0.113.10', 'TTL 127 · NAT 之后'], segment(mac.wan, mac.isp, 127, true), 'outgoing', 1450],
-  ['syn-web', ['internet', 'web'], '0.019s', '以 TTL 116 到达',
-    ['198.51.100.7 → 203.0.113.10', '以 TTL 116 到达'], segment(mac.webRouter, mac.web, 116, true), 'outgoing', 650],
-  ['reply-web', ['web', 'internet'], '0.019s', 'TTL 64 · 443 → 40112 [SYN, ACK]',
+  ['reply-web', ['web', 'internet', 'router'], '0.019s', 'TTL 64 · 443 → 40112 [SYN, ACK]',
     ['203.0.113.10 → 198.51.100.7', 'TTL 64 · SYN-ACK'], segment(mac.web, mac.webRouter, 64, true, true), 'reply', 1150],
-  ['reply-wan', ['internet', 'router'], '0.035s', 'TTL 53 · 443 → 40112 [SYN, ACK]',
-    ['203.0.113.10 → 198.51.100.7', 'TTL 53 · SYN-ACK'], segment(mac.isp, mac.wan, 53, true, true), 'reply', 650],
   ['reply-lan', ['router', 'client'], '0.035s', 'TTL 52 · 443 → 52344 [SYN, ACK]（NAT 之后）',
     ['203.0.113.10 → 192.168.1.10', 'TTL 52 · NAT 之后'], segment(mac.lan, mac.client, 52, false, true), 'reply', 850],
 ].map(([id, path, time, summary, badge, bytes, category, leadMs]) => ({
