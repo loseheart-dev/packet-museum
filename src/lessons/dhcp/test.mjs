@@ -7,7 +7,8 @@ test('DHCP DORA and renewal match the reference frames', () => {
   const client = '192.168.1.10', router = '192.168.1.1', zero = '0.0.0.0', broadcast = '255.255.255.255';
   const clientMac = '00:00:5e:00:53:10', routerMac = '00:00:5e:00:53:01';
   assert.deepEqual(lesson.frames.map(frame => frame.bytes.length), [342, 342, 364, 342, 352, 342]);
-  assert.deepEqual(lesson.steps.map(step => step.frames.length), [1, 1, 1, 1, 2]);
+  assert.deepEqual(lesson.steps.map(step => step.frames?.length ?? 0), [0, 1, 1, 1, 1, 2]);
+  assert.deepEqual(lesson.steps[4].nodeUpdates.client, { address: client, after: 'dhcp-4' });
   const offerOptions = [53, 54, 51, 58, 59, 1, 28, 3, 6];
   const options = [[53, 61, 12, 60, 55], offerOptions, [53, 61, 50, 54, 12, 81, 60, 55], offerOptions, [53, 61, 12, 81, 60, 55], offerOptions];
   for (const [i, frame] of lesson.frames.entries()) {

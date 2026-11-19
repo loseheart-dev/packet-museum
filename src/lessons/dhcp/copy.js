@@ -6,8 +6,10 @@ export const overview = {
 };
 
 export const intro = {
+  id: 'no-address', title: '还没有地址', subtitle: '笔记本电脑加入网络',
   text: '笔记本电脑刚刚连上。它有内置的 MAC 地址，但没有 IP 地址、网关和 DNS 服务器，所以还无法与自己网络之外的任何东西通信。它用 DHCP 来请求这些。',
-  facts: [['IP 地址', '无（使用 0.0.0.0）'], ['MAC 地址', '00:00:5e:00:53:10']],
+  facts: [['IP 地址', '无（使用 0.0.0.0）'], ['MAC 地址', '00:00:5e:00:53:10'], ['需要', 'IP、掩码、网关、DNS']],
+  closeup: ['client'], events: [{ node: 'client', text: '还没有 IP 地址' }],
 };
 
 export const outro = {
@@ -21,7 +23,7 @@ export const steps = [
     id: 'discover', title: '发现', subtitle: '向整个网络喊话',
     text: '由于还没有自己的地址，笔记本电脑从 0.0.0.0 发往广播地址 255.255.255.255，所以本地网络上的每台设备都会收到。只有 DHCP 服务器会回答。',
     facts: [['从', '0.0.0.0，UDP 端口 68'], ['到', '255.255.255.255，端口 67'], ['携带', 'MAC，事务 ID']],
-    frames: ['dhcp-1'], closeup: ['client'],
+    frames: ['dhcp-1'],
   },
   {
     id: 'offer', title: '提供', subtitle: '路由器提出一个地址',
@@ -40,6 +42,8 @@ export const steps = [
     text: '服务器确认后，笔记本电脑配置好地址、掩码、网关和 DNS 服务器。许多系统会先用 ARP 检查有没有别的设备已经在用这个地址。',
     facts: [['地址', '192.168.1.10/24'], ['网关', '192.168.1.1'], ['DNS 服务器', '8.8.8.8']],
     frames: ['dhcp-4'],
+    nodeUpdates: { client: { address: '192.168.1.10', after: 'dhcp-4' } },
+    events: [{ node: 'client', after: 'dhcp-4', time: '0.009s', text: '192.168.1.10/24 · 租期 24 小时' }],
   },
   {
     id: 'renew', title: '续租', subtitle: '租期过半时',
