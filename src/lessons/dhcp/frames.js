@@ -1,5 +1,5 @@
 import { concat, dhcp, ethernet, ipv4, ipv4Address, macAddress, text, udp, uint } from '../../lib/bytes/index.js';
-import { packets } from './copy.js';
+import { messageLabels, packets } from './copy.js';
 
 const client = '192.168.1.10', router = '192.168.1.1';
 const clientMac = '00:00:5e:00:53:10', routerMac = '00:00:5e:00:53:01';
@@ -22,7 +22,7 @@ const messages = [
 
 export const frames = messages.map(([op, id, options], i) => {
   const reply = op === 2, renew = i >= 4, xid = renew ? 0x7a1c22e5 : 0x3903f326;
-  const [time, message, badge] = packets[i];
+  const [time, category, badge] = packets[i];
   const src = reply ? router : renew ? client : zero;
   const dst = reply ? client : renew ? router : broadcast;
   const messageBytes = dhcp({ op, xid, flags: 0, mac: clientMac, ciaddr: renew ? client : zero, yiaddr: reply ? client : zero, options });
@@ -33,7 +33,7 @@ export const frames = messages.map(([op, id, options], i) => {
   return {
     id: `dhcp-${i + 1}`, path: reply ? ['router', 'client'] : ['client', 'router'], bytes,
     protocol: 'DHCP', application: 'dhcp', time, badge,
-    summary: `DHCP ${message} - Transaction ID 0x${xid.toString(16)}`,
-    category: message.toLowerCase(), leadMs: i === 0 ? 2450 : 1200, holdMs: 1500,
+    summary: `DHCP ${messageLabels[category]}：事务 ID 0x${xid.toString(16)}`,
+    category, leadMs: i === 0 ? 2450 : 1200, holdMs: 1500,
   };
 });
