@@ -7,7 +7,7 @@ const nodes = [
   { id: 'internet', label: '互联网', kind: 'cloud', x: 556, y: 334 },
   { id: 'web', label: '媒体服务器', kind: 'web-server', x: 640, y: 143 },
 ].map(node => ({ ...node, address: addresses[node.id] }));
-const ranges = [[0, 1], [1, 5], [5, 8], [8, 11]];
+const ranges = [[0, 1], [1, 5], [5, 8], [8, 11], [11, 11]];
 
 export default {
   meta: { id: 'udp', title: 'UDP', subtitle: '用户数据报', group: 1, order: 9, layer: 4 },
@@ -19,13 +19,17 @@ export default {
   ],
   sequenceNodes: ['client', 'internet', 'web'],
   legend: {
-    voice: { label: '你的声音', tone: 'query' },
-    reply: { label: '对方的声音', tone: 'reply' },
-    lost: { label: '第 7 帧丢失', tone: 'referral' },
+    voice: { label: '你的声音', tone: 'referral' },
+    reply: { label: '对方的声音', tone: 'violet' },
   },
-  steps: steps.map((step, i) => ({
-    ...step, wide: true,
-    ...(i === 0 ? { closeup: ['client'] } : {}),
-    frames: frames.slice(...ranges[i]).map(frame => frame.id),
-  })),
+  steps: steps.map((step, i) => {
+    const ids = frames.slice(...ranges[i]).map(frame => frame.id);
+    return {
+      ...step, wide: true, frames: ids,
+      ...(i === 0 ? { closeup: ['client'] } : {}),
+      ...(ids.length > 1 ? { parallel: [ids] } : {}),
+      ...(i === 2 ? { events: [{ node: 'web', after: 'udp-8', time: '0.140s', text: '第 7 帧丢失 · 不重发' }] } : {}),
+      ...(i === 4 ? { events: [{ node: 'client', text: '应用掩盖了 20 ms 的空缺' }] } : {}),
+    };
+  }),
 };

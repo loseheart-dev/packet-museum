@@ -4,8 +4,9 @@ import { inspectFrame } from '../../lib/bytes/index.js';
 import lesson from './index.js';
 
 test('UDP preserves the call’s two RTP streams and its single lost datagram', () => {
-  assert.deepEqual(lesson.steps.map(step => step.frames.length), [1, 4, 3, 3]);
-  assert.deepEqual(lesson.frames.filter(frame => frame.outcome === 'dropped').map(frame => [frame.time, frame.path.at(-1)]), [['0.120s', 'internet']]);
+  assert.deepEqual(lesson.steps.map(step => step.frames.length), [1, 4, 3, 3, 0]);
+  assert.deepEqual(lesson.steps.slice(1, 4).map(step => step.parallel[0]), lesson.steps.slice(1, 4).map(step => step.frames));
+  assert.deepEqual(lesson.frames.filter(frame => frame.outcome === 'dropped').map(frame => [frame.time, frame.path.at(-1)]), [['0.120s', 'web']]);
   const records = lesson.frames.map(frame => {
     const { layers } = inspectFrame(frame);
     assert.deepEqual(layers.map(layer => layer.length), [14, 20, 8, 92]);
