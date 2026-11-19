@@ -54,11 +54,25 @@
 .seq-row.flying .seq-tip{visibility:hidden}
 .seq-row.current .seq-arrow{stroke-width:2.8}
 .seq-num{fill:var(--muted);font:11px var(--mono)}
+[data-reference] .course-title{min-height:36px;padding-block:3px}
+[data-reference] .course-title small{line-height:1.35}
+[data-reference] .side .panel-head,[data-reference] #drawer .panel-head{position:sticky;top:0;z-index:2}
+[data-reference] .filter{position:sticky;top:36px;padding:5px 0 7px;background:var(--panel);z-index:1}
+[data-reference] .seq-step{fill:var(--muted);font-size:12px;font-weight:700;paint-order:stroke;stroke:var(--stage);stroke-width:5px}
+[data-reference] .seq-label{font-size:13px}
+[data-reference] .node[data-node=tld] text:not(.address){font-size:15px;transform:translateX(10px)}
+[data-reference] .tools button{min-width:31px;min-height:28px}
+[data-reference] #empty-trace{cursor:default}
 @media(min-width:1051px){.grid{grid-template-columns:clamp(238px,23vw,310px) minmax(0,1fr) clamp(215px,21vw,290px);grid-template-rows:minmax(0,1fr) min(28.5vh,255px)}}
+@media(min-width:761px){[data-reference] .sequence svg{height:100%;min-height:0}}
 @media(prefers-reduced-motion:reduce){.wire,.wire.active{animation:none;transition:none}.packet .trail{display:none}}
 @media(max-width:760px){
   .sequence{height:317px;flex:none}.seq-label,.seq-caption{font-size:11px}.seq-num{font-size:8px}
   .node text{font-size:20px}.node .address{font-size:15px}
   .knowledge .facts{display:block}.knowledge .facts div{padding:4px 0}
   .flow .panel-head{flex-wrap:wrap;align-items:center;gap:4px 8px}.packet-key{order:1;flex-basis:100%}
+  [data-reference] .grid{grid-template-areas:"stage" "flow" "knowledge"}
+  [data-reference] .wide .grid{grid-template-areas:"stage" "flow"}
+  [data-reference] .seq-label{font-size:10px}
+  [data-reference] .seq-step{font-size:10px}
 }

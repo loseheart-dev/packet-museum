@@ -1,14 +1,15 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const octets = JSON.parse($('frames').textContent).map(bytes => Uint8Array.from(bytes));
-const lesson = [
+const reference = typeof dnsReference === 'undefined' ? null : dnsReference;
+const lesson = reference?.lesson ?? [
   ['请求递归解析','让解析器代查地址','浏览器与操作系统都没有 lab.example 的地址。工作站向配置好的递归解析器提问，请它查到底，而不是只指一个方向。',[['问题','lab.example · A'],['解析器','198.51.100.53'],['标志','RD = 1']]],
   ['根区指路','找到 .example 的负责方','解析器也没有缓存，于是从根区开始。根区不保存实验室主机的地址，只返回负责顶级域的名称服务器；实际解析器也可能只问顶级域，不把完整名称交给根区。',[['服务器','示例根节点'],['分工','只维护顶级域委派'],['返回','NS 引荐及胶水地址']]],
   ['顶级域指路','找出 lab.example 的权威服务器','解析器根据第一份引荐访问 .example。这个服务器不保存主机的 A 记录，但知道 lab.example 交给谁管理，并提供继续查询所需的胶水地址。',[['服务器','ns.tld.example'],['知道','lab.example 由 ns.lab.example 管理'],['回复','NS 引荐及胶水地址']]],
   ['向权威查询','取回主机的 IPv4 地址','解析器询问 lab.example 的权威服务器。它从自己的区域记录读取 A 记录，用 AA 标明这是权威应答；本例给记录设定 60 秒的缓存期限。',[['服务器','ns.lab.example'],['A 记录','203.0.113.42'],['标志 / TTL','AA = 1 / 60 秒']]],
   ['交回并缓存','让工作站拿到最终地址','解析器沿原事务把结果交还工作站，并留下缓存。只要记录还未到期，后续查询就可直接命中；客户端的系统解析器也可以缓存结果。',[['A 记录','203.0.113.42'],['标志','RD = 1，RA = 1'],['缓存','递归解析器及客户端']]]
 ];
-const nodes = {
+const nodes = reference?.nodes ?? {
  client:'工作站', gateway:'家用路由器', internet:'互联网', resolver:'递归解析器',
  root:'根服务器', tld:'顶级域服务器', auth:'权威服务器'
 };
@@ -31,12 +32,13 @@ const scenario = [
  ['auth','resolver',3,'回答','权威 A · 203.0.113.42 · TTL 60','权威服务器返回 A 记录，设置 AA 标志。解析器可以按记录的 TTL 缓存这个结果。'],
  ['resolver','client',4,'回答','递归 A · 203.0.113.42 · TTL 60','解析器用最初的事务 ID 回答工作站，并置 RA 位表明自己支持递归；它不是该区的权威。']
 ];
-const words = ['全部','链路','网络','传输','应用','安全'];
-const courses = [
+const words = reference?.words ?? ['全部','链路','网络','传输','应用','安全'];
+const courses = reference?.courses ?? [
  ['Ethernet / ARP','同网段寻址',1,2], ['IPv4','逐跳转发',2,3], ['TCP','握手与关闭',3,4], ['UDP','无连接数据报',3,4],
  ['DNS','名字如何变成地址',4,7], ['HTTP','请求与响应',4,7], ['TLS 1.3','建立加密通道',5,6], ['DHCP','分配 IPv4 租约',4,7]
 ];
 const time = ['0.000','0.008','0.020','0.021','0.035','0.036','0.052','0.053'];
+const packetTime = i => reference?.time[i] ?? `${time[i]} s`;
 // Screen time is independent of the timestamps in the teaching trace.
 const shots = [[2350,2420],[1250,1750],[650,3750],[1600,1650],[650,5700],[1250,1650],[650,2050],[600,1150]];
 const stepStarts = lesson.map((_, step) => scenario.findIndex(packet => packet[2] === step));
@@ -57,6 +59,7 @@ let index = 0, elapsed = 0, frame = null, last = null, running = false, finished
 let revealed = -1, phase = '', inspected = 0;
 let layer = 0, category = 0, expanded = true, selectedField = null;
 const network = $('network-svg'), sceneNodes = [...network.querySelectorAll('[data-node]')];
+const badge = $('packet-badge').querySelector('rect').getBBox();
 const bounds = Object.fromEntries(sceneNodes.map(node => {
   const b = node.getBBox(), matrix = node.transform.baseVal.getItem(0).matrix;
   return [node.dataset.node,[b.x+matrix.e,b.y+matrix.f,b.x+b.width+matrix.e,b.y+b.height+matrix.f]];
@@ -131,19 +134,18 @@ function badgeOffset({x,y}) {
   const [left,top,width,height] = camera.current;
   const offsets = [[0,-26],[0,29],[83,0],[-83,0],[59,-26],[-59,-26],[59,29],[-59,29],[32,-54],[-32,-54],[36,49],[-36,49]];
   return offsets.find(([dx,dy]) => {
-    const l=x+dx-73, r=x+dx+73, t=y+dy-15, b=y+dy+16;
+    const l=x+dx+badge.x-5, r=x+dx+badge.x+badge.width+5, t=y+dy+badge.y, b=t+badge.height;
     return l>=left && r<=left+width && t>=top && b<=top+height && !nodeBoxes.some(([a,c,d,e])=>l<d && r>a && t<e && b>c);
   }) || offsets[0];
 }
 function paint() {
   const [lead,flight] = shots[index];
   const progress = clamp((elapsed-lead)/flight);
-  const nextPhase = !started ? '待播放' : finished ? '已完成' : elapsed < lead ? '准备发送' : progress < 1 ? '传输中' : '已抵达';
-  if (nextPhase !== phase) {
-    phase = nextPhase;
-    $('stage-phase').textContent = nextPhase;
-    if (started && elapsed >= lead && index > revealed) { revealed = index; renderTrace(); }
+  if (!reference) {
+    const nextPhase = !started ? '待播放' : finished ? '已完成' : elapsed < lead ? '准备发送' : progress < 1 ? '传输中' : '已抵达';
+    if (nextPhase !== phase) $('stage-phase').textContent = phase = nextPhase;
   }
+  if (started && elapsed >= lead && index > revealed) { revealed = index; renderTrace(); }
   const moving = !motion.matches;
   const detailIntro = moving && started && index === 0 && elapsed < lead;
   const zoom = moving ? ease(clamp(elapsed/1100)) : 1;
@@ -213,7 +215,7 @@ function renderCatalog() {
     item.hidden = (category !== 0 && category !== group) || (layer !== 0 && layer !== level) || !(name + desc).toLowerCase().includes(q);
     if (!item.hidden) count++;
   });
-  $('count').textContent = `${pad(count)} 项`;
+  if (!reference) $('count').textContent = `${pad(count)} 项`;
   $('no-results').hidden = count > 0;
   $('steps').hidden = !expanded;
   $('dns-course').setAttribute('aria-expanded',expanded);
@@ -225,22 +227,25 @@ function renderCatalog() {
   });
 }
 
-$('osi').insertAdjacentHTML('beforeend',Array.from({length:7},(_,i) => `<button type="button" aria-label="OSI 第 ${i+1} 层" data-layer="${i+1}">${i+1}</button>`).join(''));
-$('filters').innerHTML = words.map((word,i) => `<button type="button" data-category="${i}">${word}</button>`).join('');
+const layerNames = ['物理层','数据链路层','网络层','传输层','会话层','表示层','应用层'];
+$('osi').insertAdjacentHTML('beforeend',layerNames.map((name,i) => `<button type="button" aria-label="${reference ? `第 ${i+1} 层：${name}` : `OSI 第 ${i+1} 层`}" data-layer="${i+1}">${i+1}</button>`).join(''));
+$('filters').innerHTML = words.map((word,i) => `<button type="button" data-category="${i}">${word}${reference ? ` ${i ? courses.filter(course => course[2] === i).length : courses.length}` : ''}</button>`).join('');
 const stepList = lesson.map(([title,subtitle],i) => `<li><button type="button" data-step="${i}"><span class="step-num" aria-hidden="true">${i+1}</span><span><span class="step-title">${title}</span><small>${subtitle}</small></span></button></li>`).join('');
-$('courses').innerHTML = courses.map(([name,desc],i) => {
-  const label = `<span class="course-symbol" aria-hidden="true">${i === 4 ? '●' : '○'}</span><span><b>${name}</b><small>${desc}</small></span>`;
-  return i === 4 ? `<li class="course"><button type="button" class="course-title dns" id="dns-course" aria-controls="steps">${label}<span id="course-chevron" class="chevron" aria-hidden="true"></span></button><ol class="steps" id="steps">${stepList}</ol></li>`
+$('courses').innerHTML = courses.map(([name,desc]) => {
+  const isDNS = name === 'DNS';
+  const label = `<span class="course-symbol" aria-hidden="true">${isDNS ? '●' : '○'}</span><span><b>${name}</b><small>${desc}</small></span>`;
+  return isDNS ? `<li class="course"><button type="button" class="course-title dns" id="dns-course" aria-controls="steps">${label}<span id="course-chevron" class="chevron" aria-hidden="true"></span></button><ol class="steps" id="steps">${stepList}</ol></li>`
     : `<li class="course"><div class="course-title">${label}</div></li>`;
 }).join('');
-$('rows').innerHTML = '<tr id="empty-trace"><td colspan="7">还没有捕获报文</td></tr>' + scenario.map(([, , , kind, label],i) => {
+$('rows').innerHTML = `<tr id="empty-trace"><td colspan="7">${reference ? '线路上还没有数据包。' : '还没有捕获报文'}</td></tr>` + scenario.map(([, , , kind, label],i) => {
   const b = octets[i];
-  return `<tr data-index="${i}"><td><button type="button" class="packet-number" data-kind="${kind}" aria-label="定位到报文 ${i+1}：${kind}">${i+1}</button></td><td>${time[i]} s</td><td>${ip(b,26)}</td><td>${ip(b,30)}</td><td>DNS</td><td>${label}</td><td>${b.length} B</td></tr>`;
+  return `<tr data-index="${i}"><td><button type="button" class="packet-number" data-kind="${kind}" aria-label="定位到报文 ${i+1}：${kind}">${i+1}</button></td><td>${packetTime(i)}</td><td>${ip(b,26)}</td><td>${ip(b,30)}</td><td>DNS</td><td>${reference?.summaries[i] ?? label}</td><td>${b.length} B</td></tr>`;
 }).join('');
 
 function renderTrace() {
-  const visible = revealed;
-  const activeIndex = Math.min(index,visible);
+  const preview = reference && !started;
+  const visible = preview ? scenario.length-1 : revealed;
+  const activeIndex = preview ? -1 : Math.min(index,visible);
   $('empty-trace').hidden = visible >= 0;
   const log = $('log');
   const rows = $('rows').querySelectorAll('[data-index]');
@@ -273,44 +278,54 @@ function drawSequence() {
   const width = mobile.matches ? 360 : 720, y0 = 34, gap = mobile.matches ? 31 : 43;
   const ids = ['client','resolver','root','tld','auth'];
   const inset = mobile.matches ? 39 : 64;
+  const stepGap = reference ? 21 : 0, height = y0+gap*scenario.length+stepGap*lesson.length+12;
   const x = id => inset + ids.indexOf(id)*(width-inset*2)/4;
-  const rows = scenario.map(([from,to,,kind],i) => {
-    const y = y0+23+i*gap, dx = x(to)-x(from);
-    return `<g id="sequence-row-${i}" data-seq="${i}" data-kind="${kind}" class="seq-row" tabindex="0" role="button" aria-label="检查报文 ${i+1}，${routeText([from,to])}">
+  const rows = scenario.map(([from,to,step,kind],i) => {
+    const y = y0+23+i*gap+stepGap*(step+1), dx = x(to)-x(from);
+    const heading = reference && i === stepStarts[step] ? `<text class="seq-step" x="10" y="${y-25}">步骤 ${step+1} · ${lesson[step][0]}</text>` : '';
+    return `${heading}<g id="sequence-row-${i}" data-seq="${i}" data-kind="${kind}" class="seq-row" tabindex="0" role="button" aria-label="检查报文 ${i+1}，${routeText([from,to])}">
       <rect class="seq-hit" x="0" y="${y-23}" width="${width}" height="${gap}"/>
-      <text class="seq-num" x="6" y="${y+4}">${pad(i+1)}</text>
+      <text class="seq-num" x="6" y="${y+4}">${reference ? packetTime(i) : pad(i+1)}</text>
       <line class="seq-arrow" pathLength="1" x1="${x(from)+Math.sign(dx)*4}" x2="${x(to)-Math.sign(dx)*9}" y1="${y}" y2="${y}"/>
       <path class="seq-tip" d="M ${x(to)-Math.sign(dx)*10} ${y-4} L ${x(to)-Math.sign(dx)*3} ${y} L ${x(to)-Math.sign(dx)*10} ${y+4} Z"/>
-      <text class="seq-caption" x="${(x(from)+x(to))/2}" y="${y-9}">${tag(i)} ${kind}</text></g>`;
+      <text class="seq-caption" x="${(x(from)+x(to))/2}" y="${y-9}">${reference ? packetKind(kind) : `${tag(i)} ${kind}`}</text></g>`;
   }).join('');
-  const positions = ids.map(id => `<line class="seq-lifeline" x1="${x(id)}" x2="${x(id)}" y1="${y0}" y2="${y0+gap*8+9}"/><text class="seq-label" x="${x(id)}" y="22">${nodes[id]}</text>`).join('');
-  $('sequence').innerHTML = `<svg viewBox="0 0 ${width} ${y0+gap*8+12}" aria-label="DNS 时序，时间由上往下" role="group">${positions}${rows}</svg>`;
+  const positions = ids.map(id => `<line class="seq-lifeline" x1="${x(id)}" x2="${x(id)}" y1="${y0}" y2="${height-3}"/><text class="seq-label" x="${x(id)}" y="22">${nodes[id]}</text>`).join('');
+  $('sequence').innerHTML = `<svg viewBox="0 0 ${width} ${height}" aria-label="${reference ? '时序图' : 'DNS 时序，时间由上往下'}" role="group">${positions}${rows}</svg>`;
 }
 
 function showDetails(show) {
   $('overview-card').hidden = show;
   $('detail-card').hidden = $('show-overview').hidden = !show;
-  $('knowledge-title').textContent = show ? '步骤详情' : '协议概览';
+  $('knowledge-title').textContent = show ? (reference && finished ? '课程总结' : '步骤详情') : '协议概览';
 }
+
+const packetKind = kind => kind === '查询' ? 'DNS 查询' : kind;
 
 function render(snap=false) {
   const packet = scenario[index], [from,to,step,kind,label,explain] = packet;
-  $('stage-status').textContent = started ? `${tag(index)} ${kind} · ${routeText(packet)}` : 'DNS · 递归查询';
-  $('packet-tag').textContent = `${tag(index)} ${kind}`;
-  $('packet-label').textContent = label.replace(/^向.+?查询 |^递归 |^权威 /,'');
+  if (reference) {
+    $('packet-tag').textContent = packetKind(kind);
+    [...$('packet-label').children].forEach((line,i) => { line.textContent = reference.payloads[index][i] ?? ''; });
+  } else {
+    $('stage-status').textContent = started ? `${tag(index)} ${kind} · ${routeText(packet)}` : 'DNS · 递归查询';
+    $('packet-tag').textContent = `${tag(index)} ${kind}`;
+    $('packet-label').textContent = label.replace(/^向.+?查询 |^递归 |^权威 /,'');
+    $('legend').dataset.kind = kind;
+    $('step-route').textContent = explain;
+  }
   network.dataset.kind = kind;
-  $('legend').dataset.kind = kind;
   sceneNodes.forEach(node => {
     const id = node.dataset.node;
     node.classList.toggle('active',started && ([from,to].includes(id) || id === 'internet' || id === 'gateway' && packet.includes('client')));
   });
   aimCamera(snap);
-  $('step-stamp').textContent = `步骤 ${step+1} / ${lesson.length}${finished ? ' · 已完成' : ''}`;
-  $('step-title').textContent = lesson[step][0];
-  $('step-subtitle').textContent = lesson[step][1];
-  $('step-text').textContent = lesson[step][2];
-  $('step-route').textContent = explain;
-  $('step-facts').innerHTML = lesson[step][3].map(([name,value])=>`<div><dt>${name}</dt><dd>${value}</dd></div>`).join('');
+  const [title,subtitle,text,facts] = finished && reference ? reference.outro : lesson[step];
+  $('step-stamp').textContent = finished && reference ? '课程完成' : `步骤 ${step+1} / ${lesson.length}${finished ? ' · 已完成' : ''}`;
+  $('step-title').textContent = title;
+  $('step-subtitle').textContent = subtitle;
+  $('step-text').textContent = text;
+  $('step-facts').innerHTML = facts.map(([name,value])=>`<div><dt>${name}</dt><dd>${value}</dd></div>`).join('');
   [...$('steps').querySelectorAll('button')].forEach((button,i) => {
     const done = i < step;
     button.classList.toggle('done',done);
@@ -325,7 +340,7 @@ function render(snap=false) {
   if (view === 'packet') { inspected = index; renderBytes(); }
 }
 
-function updatePlay() { $('play').textContent = running ? 'Ⅱ 暂停' : finished ? '↻ 重播' : '▶ 播放'; }
+function updatePlay() { $('play').textContent = running ? (reference ? '暂停' : 'Ⅱ 暂停') : finished ? (reference ? '重播' : '↻ 重播') : (reference ? '播放' : '▶ 播放'); }
 function pause() { running = false; cancelAnimationFrame(frame); frame = null; last = null; updatePlay(); }
 function jump(i, autoplay=false) {
   pause(); index = Math.max(0,Math.min(scenario.length-1,i));
@@ -347,7 +362,7 @@ function tick(now) {
   last = now;
   const duration = shots[index].reduce((sum,ms) => sum+ms,0);
   if (elapsed >= duration) {
-    if (index === scenario.length-1) { finished = true; pause(); render(true); return; }
+    if (index === scenario.length-1) { finished = true; if (reference && !$('detail-card').hidden) showDetails(true); pause(); render(true); return; }
     elapsed -= duration; index++; render();
   }
   paint();
@@ -384,11 +399,26 @@ function fieldsOf(b) {
   ];
   const dns = result[3];
   const [question,end] = readName(b,54);
-  dns.push(['查询名',54,end-54,question,'每个标签前先写长度，末尾字节为 00。'],['查询类型',end,2,`${word(b,end)} · A`,'请求 IPv4 地址记录。'],['查询类',end+2,2,`${word(b,end+2)} · IN`,'互联网类。']);
+  if (reference) {
+    const names = [['目的地址','源地址','类型'],['版本，头部长度','DSCP, ECN','总长度','标识','标志','生存时间','协议','头部校验和','源地址','目的地址'],['源端口','目的端口','长度','校验和'],['事务 ID','标志','问题数','回答数','权威记录数','附加记录数']];
+    result.forEach((fields,i) => fields.forEach((field,j) => { field[0] = names[i][j]; }));
+    dns.push(['问题',54,end+4-54,`${question}，类型 A，类 IN`]);
+  } else {
+    dns.push(['查询名',54,end-54,question,'每个标签前先写长度，末尾字节为 00。'],['查询类型',end,2,`${word(b,end)} · A`,'请求 IPv4 地址记录。'],['查询类',end+2,2,`${word(b,end+2)} · IN`,'互联网类。']);
+  }
   let pos = end+4;
   for (const [offset, label] of [[48,'回答'],[50,'权威'],[52,'附加']]) for (let i=0;i<word(b,offset);i++) {
     const [owner,next] = readName(b,pos), type = word(b,next), ttl = new DataView(b.buffer).getUint32(next+4), length = word(b,next+8), data = next+10;
-    dns.push([`${label}名称`,pos,next-pos,owner,'压缩指针以 DNS 消息起点为基准。'],['记录类型',next,2,`${type} · ${type === 1 ? 'A' : 'NS'}`,'A 保存 IPv4，NS 指向域名服务器。'],['记录类',next+2,2,`${word(b,next+2)} · IN`,'本记录属于互联网类。'],['TTL',next+4,4,`${ttl} s`,'此记录还可缓存的秒数。'],['记录数据长度',next+8,2,`${length} B`,'紧接其后的 RDATA 字节数。'],[`${label}数据`,data,length,type === 1 ? ip(b,data) : readName(b,data)[0],'引荐给出服务器名及胶水，回答给出主机地址。']);
+    if (!reference) {
+      dns.push([`${label}名称`,pos,next-pos,owner,'压缩指针以 DNS 消息起点为基准。'],['记录类型',next,2,`${type} · ${type === 1 ? 'A' : 'NS'}`,'A 保存 IPv4，NS 指向域名服务器。'],['记录类',next+2,2,`${word(b,next+2)} · IN`,'本记录属于互联网类。'],['TTL',next+4,4,`${ttl} s`,'此记录还可缓存的秒数。'],['记录数据长度',next+8,2,`${length} B`,'紧接其后的 RDATA 字节数。'],[`${label}数据`,data,length,type === 1 ? ip(b,data) : readName(b,data)[0],'引荐给出服务器名及胶水，回答给出主机地址。']);
+    } else if (type === 41) {
+      dns.push(['EDNS',pos,data+length-pos,`UDP 大小 ${word(b,next+2)}，DNSSEC OK = ${(ttl>>15)&1}`]);
+    } else {
+      const kind = {1:'A',2:'NS',28:'AAAA'}[type];
+      const ipv6 = () => new URL(`http://[${Array.from({length:8},(_,j) => hex(word(b,data+2*j))).join(':')}]/`).hostname.slice(1,-1);
+      const value = type === 1 ? ip(b,data) : type === 28 ? ipv6() : readName(b,data)[0];
+      dns.push([label,pos,data+length-pos,`${owner} ${kind} ${value} (TTL ${ttl.toLocaleString('en-US')} s)`]);
+    }
     pos = data+length;
   }
   return result;
@@ -410,9 +440,10 @@ function highlight(button) {
 
 function renderBytes() {
   const b = octets[inspected], fields = fieldsOf(b);
-  $('frame-head').textContent = `${tag(inspected)} · ${routeText(scenario[inspected])} · ${b.length} B · 不含链路 FCS`;
+  $('frame-head').textContent = reference ? `${packetKind(scenario[inspected][3])} · ${packetTime(inspected)} · ${ip(b,26)} → ${ip(b,30)} · DNS · ${b.length} B` : `${tag(inspected)} · ${routeText(scenario[inspected])} · ${b.length} B · 不含链路 FCS`;
   $('layers').innerHTML = groups.map(([label,len,color],i) => `<button type="button" data-group="${i}" style="flex:${len || b.length-42} 1 49px;--layer:var(--${color})"><b>${label}</b><small>${len || b.length-42} B</small></button>`).join('');
-  $('fields').innerHTML = fields.map((items,i) => `<section id="group-${i}"><h3 style="--layer:var(--${groups[i][2]})">${groups[i][0]} / ${items.length} 项</h3>${items.map(([name,start,length,value,explain]) => `<button type="button" class="field" data-start="${start}" data-length="${length}"><b>${name}</b><code>${value}</code><small>${explain}</small></button>`).join('')}</section>`).join('');
+  const headers = reference ? ['Ethernet II · 14 字节','IPv4 · 20 字节','UDP · 8 字节','DNS'] : groups.map(([label],i) => `${label} / ${fields[i].length} 项`);
+  $('fields').innerHTML = fields.map((items,i) => `<section id="group-${i}"><h3 style="--layer:var(--${groups[i][2]})">${headers[i]}</h3>${items.map(([name,start,length,value,explain]) => `<button type="button" class="field" data-start="${start}" data-length="${length}"><b>${name}</b><code>${value}</code>${reference ? '' : `<small>${explain}</small>`}</button>`).join('')}</section>`).join('');
   const lines = [];
   const width = mobile.matches ? 5 : 8;
   for (let i=0;i<b.length;i+=width) {
@@ -427,7 +458,8 @@ function renderBytes() {
 function setView(next,focus=false,packet=index) {
   if (view !== 'packet' && next === 'packet') pause();
   view = next;
-  $('canvas').hidden = $('legend').hidden = next !== 'network';
+  $('canvas').hidden = next !== 'network';
+  if (!reference) $('legend').hidden = next !== 'network';
   $('sequence').hidden = next !== 'sequence';
   $('packet-view').hidden = next !== 'packet';
   for (const name of ['network','sequence','packet']) $(`show-${name}`).setAttribute('aria-pressed',next === name);
@@ -439,7 +471,7 @@ function setView(next,focus=false,packet=index) {
 $('filters').onclick = e => { if (e.target.dataset.category !== undefined) { category = Number(e.target.dataset.category); renderCatalog(); } };
 $('osi').onclick = e => { if (e.target.dataset.layer) { const value = Number(e.target.dataset.layer); layer = layer === value ? 0 : value; renderCatalog(); } };
 $('search').oninput = renderCatalog;
-$('search').onkeydown = e => { if (e.key === 'Enter' && mobile.matches && !$('drawer').open) $('drawer').showModal(); };
+$('search').onkeydown = e => { if (e.key === 'Enter' && mobile.matches && !$('drawer').open) $('open-catalog').click(); };
 $('dns-course').onclick = () => { expanded = !expanded; renderCatalog(); };
 $('steps').onclick = e => {
   const button = e.target.closest('[data-step]'); if (!button) return;
@@ -482,8 +514,14 @@ $('layout').onclick = () => $('layout').setAttribute('aria-pressed',$('app').cla
 $('theme').onclick = () => {
   const root = document.documentElement;
   root.dataset.theme = (root.dataset.theme || root.dataset.base) === 'light' ? 'dark' : 'light';
+  if (reference) $('theme').title = $('theme').ariaLabel = root.dataset.theme === 'light' ? '深色模式' : '浅色模式';
 };
-$('open-catalog').onclick = () => $('drawer').showModal();
+$('open-catalog').onclick = () => {
+  $('drawer').showModal();
+  if (reference && !$('dns-course').parentElement.hidden) {
+    ($('steps').hidden ? $('dns-course') : $('steps')).scrollIntoView({block:'nearest'});
+  }
+};
 $('close-catalog').onclick = () => $('drawer').close();
 function moveCatalog() {
   if ($('drawer').open) $('drawer').close();
