@@ -4,14 +4,23 @@ const octets = JSON.parse($('frames').textContent).map(bytes => Uint8Array.from(
 const lesson = [
   ['请求递归解析','让解析器代查地址','浏览器与操作系统都没有 lab.example 的地址。工作站向配置好的递归解析器提问，请它查到底，而不是只指一个方向。',[['问题','lab.example · A'],['解析器','198.51.100.53'],['标志','RD = 1']]],
   ['根区指路','找到 .example 的负责方','解析器也没有缓存，于是从根区开始。根区不保存实验室主机的地址，只返回负责顶级域的名称服务器；实际解析器也可能只问顶级域，不把完整名称交给根区。',[['服务器','示例根节点'],['分工','只维护顶级域委派'],['返回','NS 引荐及胶水地址']]],
-  ['顶级域指路','找出 lab.example 的权威服务器','解析器根据第一份引荐访问 .example。这个服务器不保存主机的 A 记录，但知道 lab.example 交给谁管理，并提供继续查询所需的胶水地址。',[['服务器','ns.tld.example'],['委派目标','ns.lab.example'],['返回','NS 引荐及胶水地址']]],
+  ['顶级域指路','找出 lab.example 的权威服务器','解析器根据第一份引荐访问 .example。这个服务器不保存主机的 A 记录，但知道 lab.example 交给谁管理，并提供继续查询所需的胶水地址。',[['服务器','ns.tld.example'],['知道','lab.example 由 ns.lab.example 管理'],['回复','NS 引荐及胶水地址']]],
   ['向权威查询','取回主机的 IPv4 地址','解析器询问 lab.example 的权威服务器。它从自己的区域记录读取 A 记录，用 AA 标明这是权威应答；本例给记录设定 60 秒的缓存期限。',[['服务器','ns.lab.example'],['A 记录','203.0.113.42'],['标志 / TTL','AA = 1 / 60 秒']]],
   ['交回并缓存','让工作站拿到最终地址','解析器沿原事务把结果交还工作站，并留下缓存。只要记录还未到期，后续查询就可直接命中；客户端的系统解析器也可以缓存结果。',[['A 记录','203.0.113.42'],['标志','RD = 1，RA = 1'],['缓存','递归解析器及客户端']]]
 ];
 const nodes = {
- client:['工作站', [[174,322],[211,329],[330,329],[360,287]]], gateway:['家用路由器'], resolver:['递归解析器'],
- root:['根服务器', [[386,216],[365,168],[337,120]]], tld:['顶级域服务器', [[478,243],[532,185],[566,108]]], auth:['权威服务器', [[479,283],[548,292],[620,295]]]
+ client:'工作站', gateway:'家用路由器', internet:'互联网', resolver:'递归解析器',
+ root:'根服务器', tld:'顶级域服务器', auth:'权威服务器'
 };
+const links = {
+ 'client>gateway':[[171,276],[232,246]], 'gateway>internet':[[309,245],[403,291]],
+ 'internet>resolver':[[448,245],[448,141]], 'internet>root':[[498,263],[574,224]],
+ 'internet>tld':[[519,292],[636,279]], 'internet>auth':[[506,318],[548,356]]
+};
+const framesByStep = [
+ ['client','gateway','internet','resolver'], ['client','gateway','internet','resolver','root'],
+ ['client','gateway','internet','resolver','root','tld'], Object.keys(nodes), Object.keys(nodes)
+];
 const scenario = [
  ['client','resolver',0,'查询','RD=1 · A lab.example','工作站只发这一个递归请求。它希望收到最终答案，而不是自己去问根服务器。'],
  ['resolver','root',1,'查询','向根区查询 A lab.example','本地缓存未命中。解析器从根区开始迭代询问；此包的 RD 位为 0。'],
@@ -19,8 +28,8 @@ const scenario = [
  ['resolver','tld',2,'查询','向 .example 查询 A lab.example','解析器使用引荐里的地址，向顶级域服务器继续问同一个问题。'],
  ['tld','resolver',2,'引荐','委派 lab.example · NS + 胶水','顶级域服务器把 lab.example 区委派给权威服务器。附加区的胶水记录给出可连接的 IPv4 地址。'],
  ['resolver','auth',3,'查询','向权威服务器查询 A lab.example','解析器向权威服务器发出最后一次迭代查询；这个事务使用独立的查询 ID。'],
- ['auth','resolver',3,'应答','权威 A · 203.0.113.42 · TTL 60','权威服务器返回 A 记录，设置 AA 标志。解析器可以按记录的 TTL 缓存这个结果。'],
- ['resolver','client',4,'应答','递归 A · 203.0.113.42 · TTL 60','解析器用最初的事务 ID 回答工作站，并置 RA 位表明自己支持递归；它不是该区的权威。']
+ ['auth','resolver',3,'回答','权威 A · 203.0.113.42 · TTL 60','权威服务器返回 A 记录，设置 AA 标志。解析器可以按记录的 TTL 缓存这个结果。'],
+ ['resolver','client',4,'回答','递归 A · 203.0.113.42 · TTL 60','解析器用最初的事务 ID 回答工作站，并置 RA 位表明自己支持递归；它不是该区的权威。']
 ];
 const words = ['全部','链路','网络','传输','应用','安全'];
 const courses = [
@@ -28,8 +37,8 @@ const courses = [
  ['DNS','名字如何变成地址',4,7], ['HTTP','请求与响应',4,7], ['TLS 1.3','建立加密通道',5,6], ['DHCP','分配 IPv4 租约',4,7]
 ];
 const time = ['0.000','0.008','0.020','0.021','0.035','0.036','0.052','0.053'];
-// Screen time (framing, flight, and reading hold) is independent of trace timestamps.
-const shots = [[850,1650,4700],[650,2050,1750],[550,1900,3750],[650,2100,1650],[550,1900,5700],[650,2050,1650],[500,1900,2050],[850,2200,1150]];
+// Screen time is independent of the timestamps in the teaching trace.
+const shots = [[2350,2420],[1250,1750],[650,3750],[1600,1650],[650,5700],[1250,1650],[650,2050],[600,1150]];
 const stepStarts = lesson.map((_, step) => scenario.findIndex(packet => packet[2] === step));
 if (scenario.length !== octets.length || scenario.length !== shots.length || stepStarts.some(i => i < 0)) {
   throw new Error('DNS 教学报文、镜头或步骤数据不完整');
@@ -43,7 +52,7 @@ const ip = (b,i) => b.slice(i,i+4).join('.');
 const mac = (b,i) => Array.from(b.slice(i,i+6), n => hex(n)).join(':');
 const word = (b,i) => b[i]*256+b[i+1];
 const tag = n => `#${pad(n+1)}`;
-const routeText = ([a,b]) => `${nodes[a][0]} → ${nodes[b][0]}`;
+const routeText = ([a,b]) => `${nodes[a]} → ${nodes[b]}`;
 let index = 0, elapsed = 0, frame = null, last = null, running = false, finished = false, started = false, view = 'network';
 let revealed = -1, phase = '', inspected = 0;
 let layer = 0, category = 0, expanded = true, selectedField = null;
@@ -55,49 +64,74 @@ const bounds = Object.fromEntries(sceneNodes.map(node => {
 const full = [0,0,760,460];
 const nodeBoxes = Object.values(bounds);
 let camera = { from:full, to:full, current:full };
-let pathLength = 0;
+let introCamera = full;
+const lanes = {};
 
-for (const [id, [, points]] of Object.entries(nodes)) if (points) {
-  const cable = document.createElementNS(svgNS,'polyline');
-  cable.setAttribute('points', points.map(p => p.join(',')).join(' '));
-  cable.setAttribute('class','wire');
-  cable.dataset.link = id;
-  $('cables').append(cable);
+for (const [key,[start,end]] of Object.entries(links)) {
+  const [a,b] = key.split('>');
+  const dx = end[0]-start[0], dy = end[1]-start[1], length = Math.hypot(dx,dy);
+  const norm = [-dy/length,dx/length];
+  for (const [id,from,to,offset] of [[key,start,end,3.7],[`${b}>${a}`,end,start,-3.7]]) {
+    const move = ([x,y]) => [x+offset*norm[0],y+offset*norm[1]];
+    const p = move(from), q = move(to);
+    const cable = document.createElementNS(svgNS,'path');
+    cable.setAttribute('d',`M${p.join(' ')} L${q.join(' ')}`);
+    cable.setAttribute('class','wire');
+    cable.setAttribute('marker-end','url(#head-idle)');
+    cable.dataset.lane = id;
+    $('cables').append(cable);
+    const [source,target] = id.split('>');
+    lanes[id] = {cable, p, q, length, source, target};
+  }
 }
 
-function currentPath() {
-  const [from,to] = scenario[index];
-  if (from === 'client') return nodes.client[1];
-  if (to === 'client') return [...nodes.client[1]].reverse();
-  return from === 'resolver' ? nodes[to][1] : [...nodes[from][1]].reverse();
+function packetRoute([from,to]) {
+  const stops = [from,...from === 'client' ? ['gateway'] : [],'internet',...to === 'client' ? ['gateway'] : [],to];
+  return stops.slice(1).map((id,i) => lanes[`${stops[i]}>${id}`]);
 }
 
+const routes = scenario.map(packetRoute);
+const hopPause = 140, flightSpeed = .145;
+const hopTimes = routes.map((route,i) => {
+  let arrival = -hopPause;
+  const times = route.map(hop => arrival += hop.length/flightSpeed+hopPause);
+  shots[i].splice(1,0,arrival);
+  return times;
+});
+const allLanes = Object.values(lanes);
+let aspect = 760/460;
 function frameNodes(ids) {
   const boxes = ids.map(id => bounds[id]);
   const x = Math.min(...boxes.map(b => b[0])), y = Math.min(...boxes.map(b => b[1]));
-  const w = Math.max(...boxes.map(b => b[2])) - x + 96, h = Math.max(...boxes.map(b => b[3])) - y + 80;
-  const aspect = network.clientHeight ? network.clientWidth/network.clientHeight : 760/460;
-  const width = Math.max(w,h*aspect), height = width/aspect;
-  return [x+(w-96-width)/2,y+(h-80-height)/2,width,height];
+  const w = Math.max(...boxes.map(b => b[2])) - x, h = Math.max(...boxes.map(b => b[3])) - y;
+  const width = Math.max(325,w+24,(h+34)*aspect), height = width/aspect;
+  return [x+(w-width)/2,y+(h-height)/2,width,height];
 }
 
 function aimCamera(snap=false) {
-  const [from,to,step] = scenario[index];
-  const participants = [from,to];
-  if (participants.includes('client')) participants.push('gateway');
-  if (step === 1 && index === 1) participants.push('gateway','tld');
+  const [, ,step] = scenario[index];
+  if (network.clientHeight) aspect = network.clientWidth/network.clientHeight;
+  introCamera = frameNodes(['client']);
   camera.from = camera.current;
-  camera.to = !started ? full : frameNodes(participants);
+  camera.to = !started || step >= 3 ? full : frameNodes(framesByStep[step]);
   if (snap) camera.from = camera.to;
 }
 
 const clamp = n => Math.max(0,Math.min(1,n));
-const ease = n => n*n*(3-2*n);
+const ease = n => n < .5 ? 4*n**3 : 1-4*(1-n)**3;
+const mix = (a,b,t) => a.map((value,i) => value+(b[i]-value)*t);
+function positionAt(route,ms) {
+  for (const hop of route) {
+    const duration = hop.length/flightSpeed;
+    if (ms <= duration+hopPause || hop === route.at(-1)) return mix(hop.p,hop.q,clamp(ms/duration));
+    ms -= duration+hopPause;
+  }
+}
 function badgeOffset({x,y}) {
   const [left,top,width,height] = camera.current;
-  const offsets = [[0,-19],[0,19],[43,0],[-43,0],[42,-20],[-42,-20]];
+  const offsets = [[0,-26],[0,29],[83,0],[-83,0],[59,-26],[-59,-26],[59,29],[-59,29],[32,-54],[-32,-54],[36,49],[-36,49]];
   return offsets.find(([dx,dy]) => {
-    const l=x+dx-37, r=x+dx+37, t=y+dy-12, b=y+dy+12;
+    const l=x+dx-73, r=x+dx+73, t=y+dy-15, b=y+dy+16;
     return l>=left && r<=left+width && t>=top && b<=top+height && !nodeBoxes.some(([a,c,d,e])=>l<d && r>a && t<e && b>c);
   }) || offsets[0];
 }
@@ -108,26 +142,60 @@ function paint() {
   if (nextPhase !== phase) {
     phase = nextPhase;
     $('stage-phase').textContent = nextPhase;
-    $('packet').setAttribute('visibility',!started || phase === '准备发送' ? 'hidden' : 'visible');
     if (started && elapsed >= lead && index > revealed) { revealed = index; renderTrace(); }
   }
   const moving = !motion.matches;
-  const zoom = moving ? ease(clamp(elapsed/Math.max(470,lead))) : 1;
-  camera.current = camera.from.map((value,i) => value+(camera.to[i]-value)*zoom);
+  const detailIntro = moving && started && index === 0 && elapsed < lead;
+  const zoom = moving ? ease(clamp(elapsed/1100)) : 1;
+  camera.current = detailIntro ? elapsed < 1100 ? mix(camera.from,introCamera,zoom) : mix(introCamera,camera.to,ease(clamp((elapsed-1100)/1100))) : mix(camera.from,camera.to,zoom);
   if (view === 'network') {
     network.setAttribute('viewBox',camera.current.join(' '));
-    const p = $('active-wire').getPointAtLength(pathLength*(!started ? .34 : moving ? ease(progress) : progress === 1 ? 1 : .5));
-    $('packet').setAttribute('transform',`translate(${p.x} ${p.y})`);
-    $('packet-badge').setAttribute('transform',`translate(${badgeOffset(p).join(' ')})`);
+    const [, ,step] = scenario[index];
+    const route = routes[index];
+    const age = elapsed-lead-flight;
+    const seen = !started ? framesByStep[4] : detailIntro && elapsed < 1100 ? ['client'] : framesByStep[step];
+    const flying = started && elapsed >= lead && age <= 180 && !finished;
+    const enteringAt = step === 0 ? 1100 : 0;
+    const old = step === 0 ? ['client'] : framesByStep[step-1];
+    const entering = id => moving && running && index === stepStarts[step] && !old.includes(id);
+    for (const lane of allLanes) {
+      const on = flying && route.includes(lane);
+      const visible = seen.includes(lane.source) && seen.includes(lane.target);
+      const reveal = entering(lane.source) || entering(lane.target) ? 1-(1-clamp((elapsed-enteringAt-120)/520))**3 : 1;
+      lane.cable.toggleAttribute('hidden',!visible || reveal < .015);
+      if (lane.reveal !== reveal) {
+        lane.reveal = reveal;
+        lane.cable.setAttribute('d',`M${lane.p.join(' ')} L${mix(lane.p,lane.q,reveal).join(' ')}`);
+      }
+      lane.cable.classList.toggle('active',on);
+      lane.cable.setAttribute('marker-end',on ? 'url(#head-active)' : 'url(#head-idle)');
+    }
+    const flyTime = moving ? elapsed-lead : progress === 1 ? flight : flight/2;
+    const [x,y] = positionAt(route,flyTime);
+    const packet = $('packet');
+    packet.setAttribute('visibility',flying ? 'visible' : 'hidden');
+    if (flying) {
+      packet.setAttribute('transform',`translate(${x} ${y}) scale(${moving ? Math.min(1,1-(1-clamp(flyTime/220))**3)*(1-clamp(age/180)**3) : 1})`);
+      $('packet-badge').setAttribute('transform',`translate(${badgeOffset({x,y}).join(' ')})`);
+      packet.querySelectorAll('.trail').forEach((dot,i)=>{
+        const [tx,ty] = positionAt(route,flyTime-70*(i+1));
+        dot.setAttribute('cx',tx-x); dot.setAttribute('cy',ty-y);
+      });
+    }
     const glow = $('arrival');
-    glow.setAttribute('cx',p.x); glow.setAttribute('cy',p.y);
-    glow.setAttribute('r',moving ? 12+30*clamp((elapsed-lead-flight)/390) : 17);
-    glow.setAttribute('opacity',progress === 1 && started ? (moving ? .85-.57*clamp((elapsed-lead-flight)/390) : .7) : 0);
+    glow.setAttribute('cx',x); glow.setAttribute('cy',y);
+    glow.setAttribute('r',moving ? 9+30*clamp(age/700) : 13);
+    glow.setAttribute('opacity',progress === 1 && started && !finished ? (moving ? .6*(1-clamp(age/700)) : .65) : 0);
     const [left,top,w,h] = camera.current;
     sceneNodes.forEach(node => {
-      const [x1,y1,x2,y2] = bounds[node.dataset.node];
-      node.style.opacity = clamp(Math.min(x1-left,y1-top,left+w-x2,top+h-y2)/24);
-      node.classList.toggle('received',progress === 1 && node.dataset.node === scenario[index][1]);
+      const id = node.dataset.node, [x1,y1,x2,y2] = bounds[id];
+      const appear = entering(id) ? clamp((elapsed-enteringAt)/650) : 1;
+      const hop = route.findIndex(lane=>lane.target === id);
+      const bump = moving && hop !== -1 ? Math.sin(Math.PI*clamp((flyTime-hopTimes[index][hop])/340)) : 0;
+      const inView = clamp(Math.min(x1-left,y1-top,left+w-x2,top+h-y2)/13);
+      node.style.opacity = seen.includes(id) ? inView*appear : 0;
+      node.style.translate = `0 ${-15*(1-appear)**3-bump*3.5}px`;
+      node.classList.toggle('received',progress === 1 && id === scenario[index][1] && (!moving || age < 700));
     });
   }
   if (view === 'sequence') {
@@ -159,7 +227,7 @@ function renderCatalog() {
 
 $('osi').insertAdjacentHTML('beforeend',Array.from({length:7},(_,i) => `<button type="button" aria-label="OSI 第 ${i+1} 层" data-layer="${i+1}">${i+1}</button>`).join(''));
 $('filters').innerHTML = words.map((word,i) => `<button type="button" data-category="${i}">${word}</button>`).join('');
-const stepList = lesson.map(([title],i) => `<li><button type="button" data-step="${i}"><span class="step-num">${i+1}</span>${title}</button></li>`).join('');
+const stepList = lesson.map(([title,subtitle],i) => `<li><button type="button" data-step="${i}"><span class="step-num" aria-hidden="true">${i+1}</span><span><span class="step-title">${title}</span><small>${subtitle}</small></span></button></li>`).join('');
 $('courses').innerHTML = courses.map(([name,desc],i) => {
   const label = `<span class="course-symbol" aria-hidden="true">${i === 4 ? '●' : '○'}</span><span><b>${name}</b><small>${desc}</small></span>`;
   return i === 4 ? `<li class="course"><button type="button" class="course-title dns" id="dns-course" aria-controls="steps">${label}<span id="course-chevron" class="chevron" aria-hidden="true"></span></button><ol class="steps" id="steps">${stepList}</ol></li>`
@@ -167,7 +235,7 @@ $('courses').innerHTML = courses.map(([name,desc],i) => {
 }).join('');
 $('rows').innerHTML = '<tr id="empty-trace"><td colspan="7">还没有捕获报文</td></tr>' + scenario.map(([, , , kind, label],i) => {
   const b = octets[i];
-  return `<tr data-index="${i}"><td><button type="button" aria-label="定位到报文 ${i+1}">${tag(i)}</button></td><td>${time[i]} s</td><td>${ip(b,26)}</td><td>${ip(b,30)}</td><td><span class="dot ${kind === '应答' ? 'answer' : kind === '引荐' ? 'referral' : ''}"></span>DNS</td><td>${label}</td><td>${b.length} B</td></tr>`;
+  return `<tr data-index="${i}"><td><button type="button" class="packet-number" data-kind="${kind}" aria-label="定位到报文 ${i+1}：${kind}">${i+1}</button></td><td>${time[i]} s</td><td>${ip(b,26)}</td><td>${ip(b,30)}</td><td>DNS</td><td>${label}</td><td>${b.length} B</td></tr>`;
 }).join('');
 
 function renderTrace() {
@@ -206,36 +274,49 @@ function drawSequence() {
   const ids = ['client','resolver','root','tld','auth'];
   const inset = mobile.matches ? 39 : 64;
   const x = id => inset + ids.indexOf(id)*(width-inset*2)/4;
-  const rows = scenario.map(([from,to,step,kind],i) => {
-    const y = y0+23+i*gap, dx = x(to)-x(from), color = kind === '引荐' ? 'referral' : kind === '应答' ? 'answer' : 'query';
-    return `<g id="sequence-row-${i}" data-seq="${i}" class="seq-row ${color}" tabindex="0" role="button" aria-label="检查报文 ${i+1}，${routeText([from,to])}">
+  const rows = scenario.map(([from,to,,kind],i) => {
+    const y = y0+23+i*gap, dx = x(to)-x(from);
+    return `<g id="sequence-row-${i}" data-seq="${i}" data-kind="${kind}" class="seq-row" tabindex="0" role="button" aria-label="检查报文 ${i+1}，${routeText([from,to])}">
       <rect class="seq-hit" x="0" y="${y-23}" width="${width}" height="${gap}"/>
       <text class="seq-num" x="6" y="${y+4}">${pad(i+1)}</text>
       <line class="seq-arrow" pathLength="1" x1="${x(from)+Math.sign(dx)*4}" x2="${x(to)-Math.sign(dx)*9}" y1="${y}" y2="${y}"/>
       <path class="seq-tip" d="M ${x(to)-Math.sign(dx)*10} ${y-4} L ${x(to)-Math.sign(dx)*3} ${y} L ${x(to)-Math.sign(dx)*10} ${y+4} Z"/>
       <text class="seq-caption" x="${(x(from)+x(to))/2}" y="${y-9}">${tag(i)} ${kind}</text></g>`;
   }).join('');
-  const positions = ids.map(id => `<line class="seq-lifeline" x1="${x(id)}" x2="${x(id)}" y1="${y0}" y2="${y0+gap*8+9}"/><text class="seq-label" x="${x(id)}" y="22">${nodes[id][0]}</text>`).join('');
+  const positions = ids.map(id => `<line class="seq-lifeline" x1="${x(id)}" x2="${x(id)}" y1="${y0}" y2="${y0+gap*8+9}"/><text class="seq-label" x="${x(id)}" y="22">${nodes[id]}</text>`).join('');
   $('sequence').innerHTML = `<svg viewBox="0 0 ${width} ${y0+gap*8+12}" aria-label="DNS 时序，时间由上往下" role="group">${positions}${rows}</svg>`;
 }
 
+function showDetails(show) {
+  $('overview-card').hidden = show;
+  $('detail-card').hidden = $('show-overview').hidden = !show;
+  $('knowledge-title').textContent = show ? '步骤详情' : '协议概览';
+}
+
 function render(snap=false) {
-  const packet = scenario[index], [from,to,step,kind,,explain] = packet;
-  $('stage-status').textContent = started ? `${tag(index)} ${kind} · ${nodes[from][0]} → ${nodes[to][0]}` : 'DNS · 递归查询';
+  const packet = scenario[index], [from,to,step,kind,label,explain] = packet;
+  $('stage-status').textContent = started ? `${tag(index)} ${kind} · ${routeText(packet)}` : 'DNS · 递归查询';
   $('packet-tag').textContent = `${tag(index)} ${kind}`;
-  $('packet').dataset.kind = kind;
-  $('active-wire').setAttribute('d','M' + currentPath().map(p=>p.join(' ')).join(' L'));
-  pathLength = $('active-wire').getTotalLength();
-  sceneNodes.forEach(node => node.classList.toggle('active',[from,to].includes(node.dataset.node) || packet.includes('client') && node.dataset.node === 'gateway'));
+  $('packet-label').textContent = label.replace(/^向.+?查询 |^递归 |^权威 /,'');
+  network.dataset.kind = kind;
+  $('legend').dataset.kind = kind;
+  sceneNodes.forEach(node => {
+    const id = node.dataset.node;
+    node.classList.toggle('active',started && ([from,to].includes(id) || id === 'internet' || id === 'gateway' && packet.includes('client')));
+  });
   aimCamera(snap);
-  $('step-stamp').textContent = finished ? '课程完成 · 5 / 5' : `步骤 ${step+1} / ${lesson.length} · 报文 ${tag(index)}`;
-  $('step-title').textContent = finished ? '解析完成' : lesson[step][1];
-  $('step-text').textContent = finished ? '从本地缓存未命中开始，解析器依次查过根区、顶级域和权威服务器。下一次查询若仍在 TTL 内，就不需要重新走这条路径。' : lesson[step][2];
+  $('step-stamp').textContent = `步骤 ${step+1} / ${lesson.length}${finished ? ' · 已完成' : ''}`;
+  $('step-title').textContent = lesson[step][0];
+  $('step-subtitle').textContent = lesson[step][1];
+  $('step-text').textContent = lesson[step][2];
   $('step-route').textContent = explain;
   $('step-facts').innerHTML = lesson[step][3].map(([name,value])=>`<div><dt>${name}</dt><dd>${value}</dd></div>`).join('');
   [...$('steps').querySelectorAll('button')].forEach((button,i) => {
-    button.classList.toggle('done',i < step || finished);
-    if (i === step) button.setAttribute('aria-current','step'); else button.removeAttribute('aria-current');
+    const done = i < step;
+    button.classList.toggle('done',done);
+    button.querySelector('.step-num').textContent = done ? '✓' : i+1;
+    button.setAttribute('aria-label',`步骤 ${i+1}：${lesson[i][0]}${done ? '，已完成' : ''}`);
+    if (started && i === step) button.setAttribute('aria-current','step'); else button.removeAttribute('aria-current');
   });
   renderTrace(); paint();
   $('prev').disabled = index === 0;
@@ -251,11 +332,14 @@ function jump(i, autoplay=false) {
   started = true; finished = false;
   elapsed = autoplay ? 0 : shots[index][0]+shots[index][1];
   revealed = autoplay ? index-1 : index;
+  showDetails(true);
   render(!autoplay);
   if (autoplay) play();
 }
 function reset() {
   pause(); index = 0; elapsed = 0; started = false; finished = false; revealed = -1; render(true);
+  if (document.activeElement === $('show-overview')) $('knowledge-title').focus();
+  showDetails(false);
 }
 function tick(now) {
   if (!running) return;
@@ -272,6 +356,7 @@ function tick(now) {
 function play() {
   if (running) { pause(); return; }
   if (!started || finished) { reset(); started = true; render(); }
+  showDetails(true);
   running = true; updatePlay(); frame = requestAnimationFrame(tick);
 }
 
@@ -364,6 +449,7 @@ $('steps').onclick = e => {
 };
 $('rows').onclick = e => { const row = e.target.closest('[data-index]'); if (row) jump(Number(row.dataset.index)); };
 $('show-network').onclick = () => setView('network');
+$('show-overview').onclick = () => { showDetails(false); $('knowledge-title').focus(); };
 $('show-sequence').onclick = () => setView('sequence');
 $('show-packet').onclick = () => setView('packet');
 $('packet').onclick = () => setView('packet',true);
