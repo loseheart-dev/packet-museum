@@ -18,13 +18,14 @@ export default {
   meta: { id: 'tcp', title: 'TCP', subtitle: '传输控制', group: 1, order: 8, layer: 4 },
   overview, outro, nodes, links, frames, viewBox: [0, 0, 665, 420], sequenceNodes: ['client', 'web'],
   legend: {
-    control: { label: '握手和 ACK', tone: 'query' },
+    control: { label: '握手和 ACK', tone: 'reply' },
     request: { label: '笔记本电脑的数据', title: 'DATA', tone: 'referral' },
-    response: { label: '服务器的数据', title: 'DATA', tone: 'reply' },
-    finish: { label: '关闭（FIN）', title: 'FIN', tone: 'query' },
+    response: { label: '服务器的数据', title: 'DATA', tone: 'violet' },
+    finish: { label: '关闭（FIN）', title: 'FIN', tone: 'navy' },
   },
   steps: steps.map((step, i) => ({
     ...step, wide: true, ...(i === 0 ? { closeup: ['client'] } : {}),
     frames: frames.slice(cuts[i], cuts[i + 1]).map(frame => frame.id),
+    ...(i === 2 ? { parallel: [['tcp-6', 'tcp-7']], events: [{ node: 'internet', after: 'tcp-6', time: '0.052s', text: '报文段 1 丢失' }] } : {}),
   })),
 };
