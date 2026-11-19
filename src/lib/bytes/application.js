@@ -1,7 +1,8 @@
 import { concat, decode, empty, ipv4Address, ipText, macAddress, macText, numberHex, requireBytes, size, text, uint } from './core.js';
 
 const cookie = 0x63825363;
-const dhcpNames = { 1: '子网掩码', 3: '网关', 6: 'DNS 服务器', 50: '请求地址', 51: '租期', 53: '消息类型', 54: '服务器标识' };
+const dhcpNames = { 1: '子网掩码', 3: '网关', 6: 'DNS 服务器', 12: '主机名', 28: '广播地址', 50: '请求地址', 51: '租期', 53: '消息类型', 54: '服务器标识', 55: '参数请求列表', 58: '续租时间 T1', 59: '重绑定时间 T2', 60: '厂商类别', 61: '客户端标识', 81: '客户端 FQDN' };
+const dhcpTimers = [51, 58, 59];
 const dhcpMessages = { 1: 'Discover', 2: 'Offer', 3: 'Request', 4: 'Decline', 5: 'ACK', 6: 'NAK', 7: 'Release', 8: 'Inform' };
 
 export function dhcp({ op = 1, xid, mac, flags = 0x8000, secs = 0, hops = 0, ciaddr = '0.0.0.0', yiaddr = '0.0.0.0', siaddr = '0.0.0.0', giaddr = '0.0.0.0', options }) {
@@ -9,7 +10,7 @@ export function dhcp({ op = 1, xid, mac, flags = 0x8000, secs = 0, hops = 0, cia
     ...[ciaddr, yiaddr, siaddr, giaddr].map(ipv4Address), macAddress(mac), new Uint8Array(10 + 64 + 128), uint(cookie, 4),
     ...options.map(([code, value]) => {
       requireBytes(code > 0 && code < 255, 'DHCP 选项 0/255 由构造器处理');
-      const bytes = typeof value === 'string' ? ipv4Address(value) : typeof value === 'number' ? uint(value, code === 51 ? 4 : 1) : value;
+      const bytes = typeof value === 'string' ? ([12, 60].includes(code) ? text(value) : ipv4Address(value)) : typeof value === 'number' ? uint(value, dhcpTimers.includes(code) ? 4 : 1) : value;
       return concat(uint(code, 1), uint(bytes.length, 1), bytes);
     }), uint(255, 1));
 }
@@ -32,15 +33,38 @@ export function parseDHCP(r) {
     if (code === 255) ended = true;
     if (!code || code === 255) continue;
     const length = r.number('选项长度', 1, size);
-    if (code === 53 || code === 51) {
+    if (code === 53 || dhcpTimers.includes(code)) {
       requireBytes(length === (code === 53 ? 1 : 4), 'DHCP 选项长度错误');
       r.number(dhcpNames[code], length, n => code === 53 ? dhcpMessages[n] ?? n : `${n} s`);
-    } else if ([1, 3, 6, 50, 54].includes(code)) {
+    } else if ([1, 3, 6, 28, 50, 54].includes(code)) {
       requireBytes(length > 0 && ([3, 6].includes(code) ? length % 4 === 0 : length === 4), 'DHCP IPv4 选项长度错误');
       for (let i = 0; i < length; i += 4) r.slice(dhcpNames[code], 4, ipText);
+    } else if ([12, 60].includes(code)) r.slice(dhcpNames[code], length, decode);
+    else if (code === 55) r.slice(dhcpNames[code], length, b => Array.from(b, n => `${n}${dhcpNames[n] ? ` ${dhcpNames[n]}` : ''}`).join(' · '));
+    else if (code === 61) {
+      requireBytes(length >= 2, 'DHCP 客户端标识长度错误');
+      const type = r.number('客户端标识类型', 1);
+      r.slice(dhcpNames[code], length - 1, type === 1 && length === 7 ? macText : undefined);
+    } else if (code === 81) {
+      requireBytes(length >= 3, 'DHCP FQDN 选项长度错误');
+      const flags = r.number('FQDN 标志', 1, n => `S=${n & 1} O=${n >> 1 & 1} E=${n >> 2 & 1} N=${n >> 3 & 1}`);
+      r.number('FQDN RCODE1', 1); r.number('FQDN RCODE2', 1);
+      r.slice(dhcpNames[code], length - 3, flags & 4 ? fqdn : decode);
     } else r.slice('选项数据', length);
   }
   requireBytes(ended, 'DHCP 缺少结束标记');
+}
+
+function fqdn(bytes) {
+  const labels = [];
+  let i = 0;
+  while (i < bytes.length) {
+    const length = bytes[i++];
+    if (!length && i === bytes.length) return labels.join('.') || '.';
+    requireBytes(length > 0 && length <= 63 && i + length < bytes.length, '无效的 DHCP FQDN 标签');
+    labels.push(decode(bytes.subarray(i, i += length)));
+  }
+  throw new RangeError('DHCP FQDN 缺少末尾根标签');
 }
 
 export function http({ startLine, headers = [], body = empty }) {

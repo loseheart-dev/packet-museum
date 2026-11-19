@@ -1,5 +1,5 @@
-import { inspectFrame } from '../lib/bytes/index.js';
-import { createPlayback } from '../playback.js';
+import { inspectFrame, reassembleTCP } from '../lib/bytes/index.js';
+import { createPlayback, lessonTimeline } from '../playback.js';
 import { $, escape, facts, mobile, motion } from './dom.js';
 import { mountInspector } from './inspector.js';
 import { mountScene } from './scene.js';
@@ -11,19 +11,27 @@ export function mountWorkbench(lesson) {
   const labels = new Map(lesson.nodes.map(node => [node.id, node.label]));
   const byId = new Map(lesson.frames.map(frame => [frame.id, frame]));
   const legend = lesson.legend ?? { packet: { label: '报文', tone: 'query' } };
-  const packets = lesson.steps.flatMap(({ frames }, step) => frames.map((id, i) => {
+  const packets = lesson.steps.flatMap(({ frames = [] }) => frames.map(id => {
     const frame = byId.get(id);
     const { label, title = label, tone } = legend[frame.category ?? 'packet'];
-    return { leadMs: 900, holdMs: 840, badge: [frame.summary], ...frame, ...inspectFrame(frame), step, firstInStep: i === 0, kind: { label, title, tone } };
+    return { leadMs: 900, holdMs: 840, badge: [frame.summary], ...frame, ...inspectFrame({ fieldNames: lesson.fieldNames, ...frame }), kind: { label, title, tone } };
   }));
-  const stepStarts = lesson.steps.map(({ frames }) => packets.findIndex(packet => packet.id === frames[0]));
+  const packetIndex = new Map(packets.map(({ id }, i) => [id, i]));
+  const groups = (lesson.reassembly ?? []).map(({ frames, protocol, application, summary, separateRows }) => {
+    const members = frames.map(id => packetIndex.get(id)), segments = members.map(i => packets[i]);
+    return { members, packet: { ...segments[0], protocol, summary, ...reassembleTCP(segments, application, lesson.fieldNames) }, segments, separateRows };
+  });
+  const packetGroups = new Map(groups.flatMap(group => group.members.map(i => [i, group])));
   $('canvas').hidden = false;
   const scene = mountScene(lesson, packets);
-  const playback = createPlayback(packets, scene.flights);
+  const { units, stepStarts, packetUnits, stepElapsed } = lessonTimeline(lesson.steps, packets, scene.flights);
+  const playback = createPlayback(units);
   const { state } = playback;
-  const trace = mountTrace(lesson, packets, labels);
+  const trace = mountTrace(lesson, packets, labels, groups);
   const renderBytes = mountInspector(on, labels);
-  let frame = null, last = null, view = 'network', inspected = 0, visible = -2;
+  let frame = null, last = null, view = 'network', inspected, traceKey;
+  const activeUnit = () => units[state.index];
+  const currentPacket = () => state.started ? activeUnit().members[0] : packets.length ? 0 : undefined;
   const overview = lesson.overview;
   $('overview-card').innerHTML = `<h3>${escape(overview.title)}</h3>${overview.subtitle ? `<p class="subtitle">${escape(overview.subtitle)}</p>` : ''}<p>${escape(overview.text)}</p><dl class="facts">${facts(overview.facts)}</dl>`;
   $('packet-key').innerHTML = Object.values(legend).map(({ label, tone }) => `<li data-tone="${tone}">${escape(label)}</li>`).join('');
@@ -36,22 +44,41 @@ export function mountWorkbench(lesson) {
 
   function updatePlay() { $('play').textContent = state.running ? '暂停' : state.finished ? '重播' : '播放'; }
 
-  function renderTrace() {
-    visible = playback.revealed();
-    trace.render(state, visible);
-  }
-
-  function paint() {
-    if (visible !== playback.revealed()) renderTrace();
-    const progress = playback.progress();
-    if (view === 'network') scene.paint(state, progress);
-    if (view === 'sequence') trace.progress(state.index, progress, state.started && !motion.matches);
+  function paint(forceTrace = false) {
+    const unit = activeUnit();
+    const reached = (i, arrival = false) => packetUnits[i] < state.index || (packetUnits[i] === state.index && state.elapsed >= packets[i].leadMs + (arrival ? scene.flights[i] : 0));
+    const visible = packets.map((_, i) => !state.started || reached(i));
+    const visibleEvents = new Set(), updatedNodes = new Map();
+    let note = '';
+    if (state.started) lesson.steps.slice(0, unit.step + 1).forEach(({ events = [], nodeUpdates = {} }, step) => {
+      events.forEach(({ after, atMs, text }, j) => {
+        if (step < unit.step || (stepElapsed[state.index] + state.elapsed >= (atMs ?? 0) && (!after || reached(packetIndex.get(after), true)))) {
+          visibleEvents.add(`${step}:${j}`);
+          if (step === unit.step) note = text;
+        }
+      });
+      for (const [id, { after, ...patch }] of Object.entries(nodeUpdates)) {
+        if (!after || step < unit.step || reached(packetIndex.get(after), true)) updatedNodes.set(id, { ...updatedNodes.get(id), ...patch });
+      }
+    });
+    const event = $('scene-event');
+    if (event.textContent !== note) event.textContent = note;
+    event.hidden = !note;
+    const key = `${state.started}:${state.index}:${visible.map(Number).join('')}:${[...visibleEvents].join(',')}`;
+    if (forceTrace || key !== traceKey) {
+      traceKey = key;
+      trace.render(state, unit, visible, new Set(state.started ? unit.members : []), visibleEvents);
+    }
+    if (view === 'network') scene.paint(state, unit, updatedNodes);
+    if (view === 'sequence') for (const i of unit.members) {
+      const fraction = (state.elapsed - packets[i].leadMs) / scene.flights[i];
+      trace.progress(i, Math.max(0, Math.min(1, fraction)), state.started && !motion.matches);
+    }
   }
 
   function render(snap = false, previousStep) {
-    const packet = packets[state.index], { step } = packet;
-    scene.setPacket(packet, state);
-    scene.aim(state, snap);
+    const unit = activeUnit(), { step } = unit;
+    scene.aim(state, unit, snap);
     if (previousStep !== step || state.finished) {
       const { title, subtitle, text, facts: items } = state.finished && lesson.outro ? lesson.outro : lesson.steps[step];
       $('step-stamp').textContent = state.finished ? '课程完成' : `步骤 ${step + 1} / ${lesson.steps.length}`;
@@ -67,9 +94,9 @@ export function mountWorkbench(lesson) {
         if (state.started && i === step) button.setAttribute('aria-current', 'step'); else button.removeAttribute('aria-current');
       }
     }
-    renderTrace(); paint();
+    paint(true);
     $('prev').disabled = !state.started || state.index === 0;
-    $('next').disabled = state.started && state.index === packets.length - 1;
+    $('next').disabled = state.started && state.index === units.length - 1;
     updatePlay();
   }
 
@@ -89,7 +116,7 @@ export function mountWorkbench(lesson) {
       if (!$('detail-card').hidden) showDetails(true);
       return;
     }
-    if (previous !== state.index) render(false, packets[previous].step); else paint();
+    if (previous !== state.index) render(false, units[previous].step); else paint();
     frame = requestAnimationFrame(tick);
   }
 
@@ -102,17 +129,21 @@ export function mountWorkbench(lesson) {
     frame = requestAnimationFrame(tick);
   }
 
-  function setView(next, focus = false, packet = state.index) {
+  function setView(next, focus = false, packet = currentPacket(), reassembled = false) {
     if (next === 'packet' && view !== 'packet') pause();
     view = next;
     $('canvas').hidden = next !== 'network';
     $('sequence').hidden = next !== 'sequence';
     $('packet-view').hidden = next !== 'packet';
     for (const name of ['network', 'sequence', 'packet']) $(`show-${name}`).setAttribute('aria-pressed', next === name);
-    if (next === 'packet') { inspected = packet; renderBytes(packets[inspected]); }
+    if (next === 'packet') {
+      const group = packetGroups.get(packet);
+      inspected = { packet: packets[packet], group };
+      renderBytes(inspected.packet, group, reassembled);
+    }
     else {
-      if (next === 'network') scene.aim(state, !state.running);
-      renderTrace(); paint();
+      if (next === 'network') scene.aim(state, activeUnit(), !state.running);
+      paint(true);
     }
     if (focus) $(`show-${next}`).focus();
   }
@@ -120,7 +151,7 @@ export function mountWorkbench(lesson) {
   function jump(i, autoplay = false) {
     pause(); playback.jump(i, autoplay);
     showDetails(true); render(!autoplay);
-    if (view === 'packet') { inspected = state.index; renderBytes(packets[inspected]); }
+    if (view === 'packet') setView('packet');
     if (autoplay) play();
   }
 
@@ -133,13 +164,20 @@ export function mountWorkbench(lesson) {
   });
   on($('rows'), 'click', e => {
     const row = e.target.closest('[data-index]');
-    if (row) jump(Number(row.dataset.index));
+    if (row) {
+      const index = Number(row.dataset.index), group = packetGroups.get(index), reassembled = group && !group.separateRows;
+      jump(packetUnits[reassembled ? group.members.at(-1) : index]);
+      if (group || view === 'packet') setView('packet', false, index, reassembled);
+    }
   });
   for (const name of ['network', 'sequence', 'packet']) on($(`show-${name}`), 'click', () => setView(name));
   on($('show-overview'), 'click', () => { showDetails(false); $('knowledge-title').focus(); });
-  const inspect = () => setView('packet', true);
-  on($('packet'), 'click', inspect);
-  on($('packet'), 'keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inspect(); } });
+  const inspect = e => {
+    const dot = e.target.closest('[data-packet]');
+    if (dot) { e.preventDefault(); setView('packet', true, Number(dot.dataset.packet)); }
+  };
+  on($('packet-dots'), 'click', inspect);
+  on($('packet-dots'), 'keydown', e => { if (e.key === 'Enter' || e.key === ' ') inspect(e); });
   function inspectSequence(e) {
     const row = e.target.closest('[data-seq]');
     if (row) { e.preventDefault(); setView('packet', true, Number(row.dataset.seq)); }
@@ -151,8 +189,8 @@ export function mountWorkbench(lesson) {
   const next = () => jump(state.started ? state.index + 1 : 0);
   on($('next'), 'click', next);
   on($('reset'), 'click', () => { pause(); playback.reset(); showDetails(false); render(true); if (view === 'packet') setView('packet'); });
-  on(mobile, 'change', () => { trace.drawSequence(); renderTrace(); if (view === 'packet') renderBytes(packets[inspected]); });
-  on(motion, 'change', paint);
+  on(mobile, 'change', () => { trace.drawSequence(); paint(true); if (view === 'packet') renderBytes(inspected.packet, inspected.group, false, true); });
+  on(motion, 'change', () => paint());
   on(document, 'visibilitychange', () => { if (document.hidden && state.running) pause(); });
   on(document, 'keydown', e => {
     if (e.defaultPrevented || e.altKey || e.metaKey || e.ctrlKey || $('drawer').open || e.target.closest('input,select,textarea')) return;
@@ -160,7 +198,7 @@ export function mountWorkbench(lesson) {
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); if (e.key === 'ArrowRight') next(); else if (state.started) jump(state.index - 1); }
   });
 
-  const resize = new ResizeObserver(() => { if (view === 'network') { scene.aim(state, !state.running); paint(); } });
+  const resize = new ResizeObserver(() => { if (view === 'network') { scene.aim(state, activeUnit(), !state.running); paint(); } });
   resize.observe($('network-svg'));
   setView('network'); showDetails(false); render(true);
   return {

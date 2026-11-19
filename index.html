@@ -2,6 +2,7 @@
 <html lang="zh-CN" data-base="light">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='1' y='1' width='30' height='30' fill='%23f8f3e5' stroke='%23254f38'/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='%23254f38' font-family='monospace' font-size='14' font-weight='bold'%3EPM%3C/text%3E%3C/svg%3E">
 <title>数据包博物馆</title>
 <div class="app" id="app">
   <header class="top">
@@ -19,17 +20,21 @@
         <svg id="network-svg" viewBox="0 0 760 460" role="group" aria-label="网络图">
           <g id="cables"></g>
           <g id="devices"></g>
-          <circle id="arrival" fill="none" stroke="var(--kind)" stroke-width="2" opacity="0" pointer-events="none"/>
-          <g id="packet" class="packet" visibility="hidden" tabindex="0" role="button" aria-label="数据包检查器">
+          <g id="packet-dots"></g>
+        </svg>
+        <output id="scene-event" hidden></output>
+        <template id="packet-template"><svg><g>
+          <circle class="arrival" fill="none" stroke="var(--kind)" stroke-width="2" opacity="0" pointer-events="none"/>
+          <g class="packet" visibility="hidden" tabindex="-1" role="button" aria-label="数据包检查器">
             <circle class="trail" r="2.5" opacity=".43"/><circle class="trail" r="1.8" opacity=".30"/><circle class="trail" r="1.2" opacity=".21"/>
             <circle class="halo" r="9" opacity=".18"/><circle class="head" r="4.4"/>
-            <g id="packet-badge"><rect class="packet-body" x="-94" y="-15" width="188" height="41" rx="2"/><path class="packet-band" d="M-94-15h188V0H-94Z"/><text id="packet-tag" y="-4"></text><text id="packet-label" y="10"><tspan x="0"></tspan><tspan x="0" dy="11"></tspan></text></g>
+            <g class="packet-badge"><rect class="packet-body" x="-94" y="-15" width="188" height="41" rx="2"/><path class="packet-band" d="M-94-15h188V0H-94Z"/><text class="packet-tag" y="-4"></text><text class="packet-label" y="10"><tspan x="0"></tspan><tspan x="0" dy="11"></tspan></text></g>
           </g>
-        </svg>
+        </g></svg></template>
       </div>
       <div id="sequence" class="sequence" hidden></div>
       <div id="packet-view" class="packet-view" aria-label="数据包检查器" hidden>
-        <div class="frame-head" id="frame-head"></div><div class="layers" id="layers" aria-label="报文封装层"></div>
+        <div class="frame-head" id="frame-head"></div><div id="segment-tabs" hidden></div><div class="layers" id="layers" aria-label="报文封装层"></div>
         <div class="inspector"><div class="fields" id="fields" aria-label="报文字段"></div><div class="dump" id="dump" aria-label="十六进制和 ASCII"></div></div>
       </div>
     </section>
@@ -40,7 +45,7 @@
     </aside>
     <section class="panel flow" aria-labelledby="flow-title">
       <header class="panel-head"><h2 id="flow-title">数据包流</h2><ul class="packet-key" id="packet-key" aria-label="颜色图例"></ul><div class="playback"><select id="rate" aria-label="播放速度"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select><button id="prev" aria-label="上一步" title="上一步">◀</button><button class="primary" id="play">播放</button><button id="next" title="一次一个数据包">单步</button><button id="reset" aria-label="重置" title="重置">↺</button></div></header>
-      <div class="log" id="log" tabindex="0" aria-label="报文表格"><table><thead><tr><th scope="col">序号</th><th scope="col">时间</th><th scope="col">源地址</th><th scope="col">目的地址</th><th scope="col">协议</th><th scope="col">信息</th><th scope="col">大小</th></tr></thead><tbody id="rows"></tbody></table></div>
+      <div class="log" id="log" tabindex="0" aria-label="报文表格"><table><thead><tr><th scope="col">序号</th><th scope="col">时间</th><th scope="col">源地址</th><th scope="col">目的地址</th><th scope="col" data-link-address hidden>源 MAC</th><th scope="col" data-link-address hidden>目的 MAC</th><th scope="col">协议</th><th scope="col">信息</th><th scope="col">大小</th></tr></thead><tbody id="rows"></tbody></table></div>
     </section>
   </main>
 </div>

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readdirSync } from 'node:fs';
 import { catalog } from '../src/catalog.js';
-import { inspectFrame } from '../src/lib/bytes/index.js';
+import { inspectFrame, reassembleTCP } from '../src/lib/bytes/index.js';
 
 const root = new URL('../src/lessons/', import.meta.url);
 const kinds = ['pc', 'router', 'switch', 'cloud', 'server', 'dns-server', 'dhcp-server', 'web-server'];
@@ -25,7 +25,7 @@ for (const { name } of dirs) {
     assert(nonempty(overview.title) && nonempty(overview.text));
     if (outro) assert(nonempty(outro.title) && nonempty(outro.text));
     if (viewBox) assert(viewBox.length === 4 && viewBox.every(Number.isFinite) && viewBox[2] > 0 && viewBox[3] > 0);
-    assert(nodes.length >= 2 && steps.length && frames.length);
+    assert(nodes.length >= 2 && steps.length && Array.isArray(frames));
     unique(nodes.map(node => node.id)); unique(steps.map(step => step.id)); unique(frames.map(frame => frame.id));
     nodes.forEach(node => {
       slug(node.id);
@@ -47,21 +47,47 @@ for (const { name } of dirs) {
       assert(sequenceNodes.length >= 2 && sequenceNodes.every(id => nodeById.has(id)));
     }
     const legend = lesson.legend ?? { packet: { label: '报文', tone: 'query' } };
-    Object.values(legend).forEach(({ label, tone }) => assert(nonempty(label) && ['query', 'referral', 'reply'].includes(tone)));
+    Object.values(legend).forEach(({ label, tone }) => assert(nonempty(label) && ['query', 'referral', 'reply', 'violet', 'blue', 'navy', 'teal', 'plum', 'red'].includes(tone)));
     const attached = steps.flatMap(step => {
       slug(step.id);
-      assert(nonempty(step.title) && nonempty(step.text) && step.frames.length);
+      assert(nonempty(step.title) && nonempty(step.text));
+      const ids = step.frames ?? [];
+      if (step.holdMs !== undefined) assert(Number.isInteger(step.holdMs) && step.holdMs > 0);
       for (const ids of [step.nodes, step.closeup].filter(Boolean)) assert(ids.length && ids.every(id => nodeById.has(id)));
       if (step.closeup) assert(step.closeup.every(id => !step.nodes || step.nodes.includes(id)));
-      for (const id of step.frames) {
+      for (const id of ids) {
         const frame = frameById.get(id);
         assert(frame, `找不到步骤引用的帧 ${id}`);
         assert(frame.path.every(id => !step.nodes || step.nodes.includes(id)), '报文路径经过隐藏节点');
       }
-      return step.frames;
+      unique(step.parallel?.flat() ?? []);
+      for (const group of step.parallel ?? []) {
+        assert(group.length > 1 && ids.includes(group[0]));
+        assert.deepEqual(group, ids.slice(ids.indexOf(group[0]), ids.indexOf(group[0]) + group.length));
+      }
+      for (const { node, after, text, time, atMs } of step.events ?? []) {
+        assert(nonempty(text) && (!node || nodeById.has(node)) && (!after || ids.includes(after)));
+        if (time !== undefined) assert(nonempty(time));
+        if (atMs !== undefined) assert(Number.isInteger(atMs) && atMs >= 0);
+      }
+      for (const [id, { label, address, status, after }] of Object.entries(step.nodeUpdates ?? {})) {
+        assert(nodeById.has(id) && (!after || ids.includes(after)));
+        assert([label, address, status].every(value => value === undefined || typeof value === 'string'));
+      }
+      return ids;
     });
     unique(attached);
     assert.equal(attached.length, frames.length, '有帧未被步骤引用');
+    unique(lesson.reassembly?.flatMap(group => group.frames) ?? []);
+    for (const group of lesson.reassembly ?? []) {
+      const start = attached.indexOf(group.frames[0]);
+      assert(start >= 0 && nonempty(group.protocol) && nonempty(group.summary));
+      assert.deepEqual(group.frames, attached.slice(start, start + group.frames.length));
+      reassembleTCP(group.frames.map(id => {
+        const frame = frameById.get(id);
+        return { ...frame, ...inspectFrame(frame) };
+      }), group.application, lesson.fieldNames);
+    }
     for (const frame of frames) await t.test(frame.id, () => {
       slug(frame.id);
       assert(frame.path.length > 1 && frame.path.every(id => nodeById.has(id)), '帧引用了未知节点');
@@ -73,7 +99,8 @@ for (const { name } of dirs) {
       for (const value of [frame.leadMs, frame.holdMs].filter(value => value !== undefined)) assert(Number.isInteger(value) && value >= 0);
       if (frame.outcome) assert(['delivered', 'dropped'].includes(frame.outcome));
       if (frame.badge) assert(frame.badge.length <= 2 && frame.badge.every(nonempty));
-      const { layers } = inspectFrame(frame);
+      if (frame.relativeTo) assert(frame.relativeTo.length === 2 && frame.relativeTo.every(n => n === null || Number.isInteger(n) && n >= 0 && n <= 0xffffffff));
+      const { layers } = inspectFrame({ fieldNames: lesson.fieldNames, ...frame });
       let offset = 0;
       for (const layer of layers) {
         assert.equal(layer.offset, offset);

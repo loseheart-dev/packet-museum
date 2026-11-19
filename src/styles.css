@@ -24,6 +24,14 @@ dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line);pad
 [data-tone=query]{--kind:var(--query)}
 [data-tone=referral]{--kind:var(--referral)}
 [data-tone=reply]{--kind:var(--reply)}
+:root{--violet:#66518c;--blue:#3c628e;--navy:#3c4d77;--teal:#28736b;--plum:#82516f;--red:#a34b45}
+:root:is([data-base=dark]:not([data-theme]),[data-theme=dark]){--violet:#c4a9e9;--blue:#9abde9;--navy:#a3b6e9;--teal:#85d0c1;--plum:#ddaac6;--red:#eaa59c}
+[data-tone=violet]{--kind:var(--violet)}
+[data-tone=blue]{--kind:var(--blue)}
+[data-tone=navy]{--kind:var(--navy)}
+[data-tone=teal]{--kind:var(--teal)}
+[data-tone=plum]{--kind:var(--plum)}
+[data-tone=red]{--kind:var(--red)}
 .wire{stroke:var(--idle-lane);stroke-width:1.4;stroke-dasharray:4.2 3.5;transition:stroke .35s,stroke-width .35s}
 .wire.active{stroke:var(--kind);stroke-width:1.68;stroke-dasharray:4.2 3.5;animation:lane-flow .55s linear infinite}
 .legend b{color:var(--kind,var(--query))}
@@ -32,7 +40,12 @@ dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line);pad
 .packet .head{stroke:var(--panel);stroke-width:1.4}
 .packet .packet-body{fill:var(--panel);stroke:var(--kind);stroke-width:1}
 .packet text{fill:var(--mark-ink);font-size:10px}
-.packet #packet-label{fill:var(--ink);font-size:9px}
+.packet .packet-label{fill:var(--ink);font-size:9px}
+.canvas{position:relative}
+#scene-event{position:absolute;inset:auto 8px 8px auto;background:var(--panel);border:1px solid var(--line);padding:4px 8px;color:var(--ink);font-size:11px;max-width:calc(100% - 16px)}
+#segment-tabs{display:flex;flex-wrap:wrap;gap:3px;padding:0 9px 6px}
+#segment-tabs button{padding:2px 5px;font-size:11px}
+#segment-tabs button[aria-pressed=true]{background:var(--selected);color:var(--accent)}
 .node .left-label{text-anchor:end}
 .node>text{paint-order:stroke;stroke:var(--stage);stroke-width:3;stroke-linejoin:round}
 .node.received .ground{fill:var(--kind);opacity:.42}
@@ -53,17 +66,20 @@ dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line);pad
 .knowledge #show-overview{padding:2px 6px;font-size:11px}
 .flow .panel-head{justify-content:flex-start}
 .flow .playback{margin-left:auto}
-.packet-key{display:flex;gap:10px;padding:0;list-style:none;font-size:11px;color:var(--muted)}
+.packet-key{display:flex;flex-wrap:wrap;gap:3px 10px;padding:0;list-style:none;font-size:11px;color:var(--muted)}
 .packet-key li{display:flex;align-items:center;gap:4px;white-space:nowrap}
 .packet-key li::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--kind)}
-.packet-number,.packet-number:hover:not(:disabled){width:17px;height:17px;min-width:0;border-radius:50%;background:var(--kind);color:var(--mark-ink);font-weight:750;line-height:1}
+.packet-number,.packet-number:hover:not(:disabled){min-width:17px;height:17px;padding:0 3px;border-radius:9px;background:var(--kind);color:var(--mark-ink);font-weight:750;line-height:1}
 .packet-number:focus-visible{outline-color:var(--focus);outline-offset:2px}
 .sequence{flex:1;min-height:0;overflow:auto;background:var(--stage)}
-.sequence svg{display:block;width:100%;min-height:100%}
+.sequence svg{display:block;width:100%;height:auto;min-height:100%}
 .seq-label,.seq-caption{text-anchor:middle;fill:var(--ink);font-size:14px;font-weight:700}
 .seq-lifeline{stroke:var(--path);stroke-width:1;stroke-dasharray:3 4}
 .seq-row{cursor:pointer}
 .seq-row.pending{visibility:hidden;pointer-events:none}
+.sequence .pending{visibility:hidden}
+.seq-loss{font-size:11px;font-weight:700;paint-order:stroke;stroke:var(--stage);stroke-width:3px}
+.seq-event{fill:var(--accent);font-size:11px;font-weight:700;paint-order:stroke;stroke:var(--stage);stroke-width:4px}
 .seq-hit{fill:transparent}
 .seq-row.current .seq-hit,.seq-row:hover .seq-hit,.seq-row:focus-visible .seq-hit{fill:var(--selected)}
 .seq-arrow{stroke:var(--kind);stroke-width:1.8;stroke-dasharray:1 1}
@@ -81,7 +97,6 @@ dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line);pad
 .tools button{min-width:31px;min-height:28px}
 #empty-trace{cursor:default}
 @media(min-width:1051px){.grid{grid-template-columns:clamp(238px,23vw,310px) minmax(0,1fr) clamp(215px,21vw,290px);grid-template-rows:minmax(0,1fr) min(28.5vh,255px)}}
-@media(min-width:761px){.sequence svg{height:100%;min-height:0}}
 @media(prefers-reduced-motion:reduce){.wire,.wire.active{animation:none;transition:none}.packet .trail{display:none}}
 .brand a,.course-title:is(a){color:inherit;text-decoration:none}
 .course-title:is(a):hover{background:var(--selected)}

@@ -1,6 +1,7 @@
 import { checksum, concat, empty, ipv4Address, ipText, macAddress, macText, numberHex, requireBytes, size, transportChecksum, uint } from './core.js';
 
-export const ethernet = ({ src, dst, type = 0x0800, payload }) => concat(macAddress(dst), macAddress(src), uint(type, 2), payload);
+export const ethernet = ({ src, dst, type = 0x0800, payload, pad = false }) => concat(macAddress(dst), macAddress(src), uint(type, 2), payload,
+  pad ? new Uint8Array(Math.max(0, 46 - payload.length)) : empty);
 
 export function arp({ operation, senderMac, senderIp, targetMac = '00:00:00:00:00:00', targetIp }) {
   return concat(uint(1, 2), uint(0x0800, 2), uint(6, 1), uint(4, 1), uint(operation, 2),
@@ -78,7 +79,7 @@ export function parseUDP(r, addresses) {
   requireBytes(checksumValue && addresses && transportChecksum(addresses.src, addresses.dst, 17, r.bytes) === 0, 'UDP 伪首部校验和错误或缺少 IPv4 地址');
 }
 
-export function parseTCP(r, addresses) {
+export function parseTCP(r, addresses, relativeTo) {
   r.number('源端口', 2);
   r.number('目的端口', 2);
   r.number('序列号', 4);
@@ -89,6 +90,34 @@ export function parseTCP(r, addresses) {
   r.number('校验和', 2, numberHex);
   r.number('紧急指针', 2);
   requireBytes(words >= 5, '无效的 TCP 数据偏移');
-  r.slice('选项', words * 4 - 20);
+  const end = words * 4;
+  requireBytes(end <= r.bytes.length, 'TCP 缺少选项字节');
+  while (r.pos < end) {
+    const kind = r.bytes[r.pos];
+    if (kind === 0 || kind === 1) {
+      r.number(kind === 0 ? '选项结束' : 'NOP', 1);
+      if (kind === 0) r.slice('选项填充', end - r.pos);
+      continue;
+    }
+    const length = r.bytes[r.pos + 1];
+    requireBytes(length >= 2 && r.pos + length <= end, '无效的 TCP 选项长度');
+    const expected = { 2: 4, 3: 3, 4: 2, 8: 10 }[kind];
+    requireBytes(!expected || length === expected, '无效的 TCP 选项长度');
+    requireBytes(kind !== 5 || (length >= 10 && (length - 2) % 8 === 0), '无效的 TCP SACK 长度');
+    const label = { 2: 'MSS', 3: '窗口缩放', 4: 'SACK Permitted', 5: 'SACK', 8: '时间戳' }[kind] ?? `选项 ${kind}`;
+    r.slice(label, length, b => {
+      const view = new DataView(b.buffer, b.byteOffset, b.byteLength);
+      if (kind === 2) return size(view.getUint16(2));
+      if (kind === 3) return `shift ${b[2]} · ×${2 ** b[2]}`;
+      if (kind === 4) return '允许';
+      if (kind === 5) return Array.from({ length: (length - 2) / 8 }, (_, i) => {
+        const left = view.getUint32(2 + i * 8), right = view.getUint32(6 + i * 8), base = relativeTo?.[1];
+        const absolute = `[${left}, ${right})`;
+        return base == null ? absolute : `已有 ${(left - base) >>> 0}–${(right - base - 1) >>> 0}（相对） · ${absolute}`;
+      }).join(' · ');
+      if (kind === 8) return `TSval ${view.getUint32(2)} · TSecr ${view.getUint32(6)}`;
+      return Array.from(b.subarray(2), n => numberHex(n, 2)).join(' ');
+    });
+  }
   requireBytes(addresses && transportChecksum(addresses.src, addresses.dst, 6, r.bytes) === 0, 'TCP 伪首部校验和错误或缺少 IPv4 地址');
 }

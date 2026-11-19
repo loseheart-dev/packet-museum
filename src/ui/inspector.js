@@ -3,7 +3,8 @@ import { $, escape, mobile } from './dom.js';
 
 export function mountInspector(on, labels) {
   const fields = $('fields'), dump = $('dump');
-  let selected = null;
+  const tabs = $('segment-tabs');
+  let selected = null, group = null, segment = 0;
   let offsets = [];
 
   function highlight(button, scroll = true) {
@@ -23,7 +24,13 @@ export function mountInspector(on, labels) {
     }
   }
 
-  function render(packet) {
+  function draw(packet) {
+    if (!packet) {
+      $('frame-head').textContent = '此步骤没有数据包';
+      $('layers').replaceChildren(); fields.replaceChildren(); dump.replaceChildren();
+      selected = null; offsets = [];
+      return;
+    }
     const { bytes, layers, kind, time, path, protocol } = packet;
     $('frame-head').textContent = `${kind.title} · ${time} · ${packet.src ?? labels.get(path[0])} → ${packet.dst ?? labels.get(path.at(-1))} · ${protocol} · ${bytes.length} B`;
     $('layers').innerHTML = layers.map(({ label, length, color }, i) => `<button type="button" data-group="${i}" style="flex:${length} 1 49px;--layer:var(--${color})"><b>${label}</b><small>${length} B</small></button>`).join('');
@@ -40,6 +47,22 @@ export function mountInspector(on, labels) {
     fields.scrollTop = dump.scrollTop = 0;
     selected = null;
   }
+
+  function render(packet, nextGroup, reassembled = false, preserve = false) {
+    if (!preserve || group !== nextGroup) segment = !reassembled && nextGroup ? nextGroup.segments.indexOf(packet) + 1 : 0;
+    group = nextGroup;
+    tabs.hidden = !group;
+    tabs.innerHTML = group ? ['重组载荷', ...group.segments.map((_, i) => `TCP 段 ${i + 1}`)].map((label, i) => `<button type="button" data-segment="${i}" aria-pressed="${i === segment}">${label}</button>`).join('') : '';
+    draw(group ? (segment ? group.segments[segment - 1] : group.packet) : packet);
+  }
+
+  on(tabs, 'click', e => {
+    const button = e.target.closest('[data-segment]');
+    if (!button) return;
+    segment = Number(button.dataset.segment);
+    tabs.querySelectorAll('button').forEach(item => item.setAttribute('aria-pressed', item === button));
+    draw(segment ? group.segments[segment - 1] : group.packet);
+  });
 
   on($('layers'), 'click', e => {
     const i = e.target.closest('[data-group]')?.dataset.group;
