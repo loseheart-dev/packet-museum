@@ -1,38 +1,38 @@
-// Lesson copy from the reference bundle's UDP definition; the catalog uses the saved zh snapshot.
+// Protocol Explorer: index-CNPseYOQ.js + zh-AH-lIMHP.js.
 export const overview = {
-  title: 'UDP', subtitle: 'User Datagram Protocol',
-  text: 'UDP sends data in independent packets called datagrams, with no connection, no acknowledgements and no resends. That keeps it fast and light: right for voice, video, games and DNS, where a late answer is worse than a missing one.',
-  facts: [['Layer', 'Transport (Layer 4)'], ['Connection', 'None'], ['Reliability', 'None (no ACKs, no resends)'], ['Ordering', 'Not guaranteed'], ['Header', '8 bytes'], ['Defined In', 'RFC 768']],
+  title: 'UDP', subtitle: '用户数据报',
+  text: 'UDP 用称为数据报的独立数据包发送数据，没有连接，没有确认，也不重传。这让它又快又轻：适合语音、视频、游戏和 DNS，在这些场景里，迟到的回答比缺失的回答更糟。',
+  facts: [['层', '传输层（第 4 层）'], ['连接', '无'], ['可靠性', '无（没有 ACK，不重传）'], ['顺序', '不保证'], ['头部', '8 字节'], ['定义于', 'RFC 768']],
 };
 
 export const steps = [
   {
-    id: 'send', title: 'Send Right Away', subtitle: 'No handshake, data goes first',
-    text: 'A call app already knows the media server’s address and port from signing in. It doesn’t open a connection: the very first datagram already carries 20 ms of your voice, behind an 8-byte UDP header.',
-    facts: [['Setup', 'None'], ['Header', '8 bytes'], ['Ports', '50000 → 5004']],
+    id: 'send', title: '马上发送', subtitle: '没有握手，数据先行',
+    text: '通话应用在登录时就已经知道媒体服务器的地址和端口。它不打开连接：第一个数据报就已经在 8 字节的 UDP 头部后面带上了你 20 ms 的声音。',
+    facts: [['建立', '无'], ['头部', '8 字节'], ['端口', '50000 → 5004']],
   },
   {
-    id: 'stream', title: 'A Stream of Datagrams', subtitle: 'One every 20 ms, each on its own',
-    text: 'The app keeps sending a datagram every 20 ms. Each one stands alone, with its own header and no link to the others. UDP doesn’t number them, and nothing comes back to confirm they arrived.',
-    facts: [['Rate', '1 datagram / 20 ms'], ['Numbering', 'None in UDP itself'], ['Confirmation', 'None (no ACKs)']],
+    id: 'stream', title: '数据报流', subtitle: '每 20 ms 一个，各自独立',
+    text: '应用每 20 ms 发送一个数据报。每个都是独立的，有自己的头部，与其他数据报没有联系。UDP 不给它们编号，也没有任何回复来确认它们已到达。',
+    facts: [['速率', '1 个数据报 / 20 ms'], ['编号', 'UDP 本身没有'], ['确认', '无（没有 ACK）']],
   },
   {
-    id: 'loss', title: 'Lost on the Way', subtitle: 'Nobody resends it',
-    text: 'Frame 7 is dropped somewhere on the internet. The media server never asks for it, and UDP never tells the laptop: there are no acknowledgements to miss. The datagrams after it arrive as normal.',
-    facts: [['Lost', 'Voice frame 7'], ['Resent', 'Never (no ACKs)'], ['Missing', '20 ms of audio']],
+    id: 'loss', title: '途中丢失', subtitle: '没人重传它',
+    text: '第 7 帧在互联网上某处被丢弃。媒体服务器从不索要它，UDP 也从不通知笔记本电脑：根本没有可以缺少的确认。之后的数据报照常到达。',
+    facts: [['已丢失', '语音帧 7'], ['已重传', '从不（没有 ACK）'], ['缺失', '20 ms 音频']],
   },
   {
-    id: 'reply', title: 'Replies Come Back', subtitle: 'The other voice comes back',
-    text: 'The other person’s voice arrives the same way, as separate datagrams sent to port 50000. They get back in because your router remembered the outgoing port when it translated your address (NAT).',
-    facts: [['Ports', '5004 → 50000'], ['Direction', 'Independent of ours'], ['Through NAT', 'Router remembers the port']],
+    id: 'reply', title: '回复传回来', subtitle: '对方的声音传回来',
+    text: '对方的声音以同样的方式到达，是发往 50000 端口的一个个独立数据报。它们能进来，是因为你的路由器在转换你的地址（NAT）时记住了发出的端口。',
+    facts: [['端口', '5004 → 50000'], ['方向', '与我们这边无关'], ['经过 NAT', '路由器记住端口']],
   },
 ];
 
 // shortcut: the note-only fifth step shares the outro until the player supports steps without frames.
 export const outro = {
-  title: 'The App Decides', subtitle: 'Reliability is up to the app',
-  text: 'The call app numbers its own frames (RTP does this), so it sees that frame 7 is missing and smooths over the 20 ms gap instead of waiting. Waiting for a resend would make the whole call lag. '
-    + 'Audio started with the very first packet, every datagram travelled on its own, and the one that was lost was simply gone: UDP never noticed. The app covered the gap and the call carried on. Press REPLAY to watch it again.',
-  facts: [['Ordering', 'App’s job (e.g. RTP)'], ['Loss', 'Hidden by the app'], ['Also on UDP', 'DNS, games, QUIC'],
-    ['Datagrams', '11 (1 lost, never resent)'], ['Setup time', '0 ms (no handshake)'], ['Header', '8 bytes (TCP: 20+)'], ['Shown', 'The first 0.2 s of a call']],
+  title: '由应用决定', subtitle: '可靠性取决于应用',
+  text: '通话应用自己给帧编号（RTP 就做这件事），所以它看到第 7 帧缺失后，会平滑地掩盖这 20 ms 的空缺，而不是等待。等待重传会让整个通话卡顿。'
+    + '音频从第一个数据包就开始了，每个数据报都独自传输，丢失的那个就这么没了：UDP 根本没注意到。应用掩盖了空缺，通话照常进行。按“重播”可以再看一遍。',
+  facts: [['顺序', '应用的职责（如 RTP）'], ['丢失', '由应用掩盖'], ['同样基于 UDP', 'DNS、游戏、QUIC'],
+    ['数据报', '11（丢失 1 个，从不重传）'], ['建立时间', '0 ms（没有握手）'], ['头部', '8 字节（TCP 为 20+）'], ['显示范围', '通话的前 0.2 秒']],
 };
