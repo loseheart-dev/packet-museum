@@ -45,7 +45,7 @@ export default {
   outro: para(outro), nodes, links, frames,
   sequenceNodes: ['client', 'resolver', 'root', 'tld', 'auth'],
   legend: {
-    query: { label: '查询', title: 'DNS 查询', tone: 'query' },
+    query: { label: '查询', title: 'DNS 查询', tone: 'blue' },
     referral: { label: '引荐', tone: 'referral' },
     reply: { label: '回答', tone: 'reply' },
   },
@@ -54,5 +54,10 @@ export default {
     frames: stepFrames[i].map(n => frames[n].id),
     nodes: visibleNodes.slice(0, [4, 5, 6, 7, 7][i]), wide: i >= 3,
     ...(i === 0 ? { closeup: ['client'] } : {}),
+    ...(i === 1 ? { events: [{ node: 'resolver', text: '不在缓存中' }] } : {}),
+    ...(i === 4 ? {
+      events: [{ node: 'resolver', after: 'dns-8', time: '0.082s', text: '已缓存 · TTL 3600 秒' }],
+      nodeUpdates: { resolver: { after: 'dns-8', status: 'TTL 3600 秒' } },
+    } : {}),
   })),
 };
