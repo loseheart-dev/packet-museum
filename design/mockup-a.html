@@ -21,6 +21,7 @@ dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line);pad
 @media(max-width:760px){.app{height:auto}.top{flex-wrap:wrap;gap:5px 8px;padding:7px 9px}.brand{flex:1}.brand-mark{width:28px;height:29px}.brand small{font-size:9px}h1{font-size:14px}.search{width:119px;font-size:12px}.osi{order:3;flex:1}.osi button{min-width:23px;padding:2px}.tools{order:4}.tools button{font-size:11px;padding:3px 5px}.drawer-open{display:inline-block}.grid,.wide .grid{grid-template-columns:minmax(0,1fr);grid-template-rows:auto;grid-template-areas:"stage" "knowledge" "flow";gap:7px;padding:7px}.side{display:none}.canvas{height:274px;flex:none}.knowledge section{padding:7px 9px}.knowledge .facts{display:grid;grid-template-columns:1fr 1fr;gap:0 8px}.flow{min-height:215px}.log{max-height:231px}.playback{justify-content:flex-end}.playback button{font-size:11px;padding:3px 5px}.flow .panel-head{align-items:start}.flow h2{white-space:nowrap}.packet-view{min-height:0}.inspector{height:291px;flex:none;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.dump{font-size:9px}.field{grid-template-columns:1fr}.field small{grid-column:1}.layers button{font-size:10px}.stage-status{font-size:10px!important}.wide .knowledge{display:none}}
 @media(max-width:760px){.dump-line{grid-template-columns:4ch 17ch 5ch}.node text{font-size:23px}.node .address{font-size:16px}}
 </style>
+<link rel="stylesheet" href="shared/dns-lesson.css">
 <div class="app" id="app">
   <header class="top">
     <div class="brand"><span class="brand-mark" aria-hidden="true">PM</span><div><h1>数据包博物馆</h1><small>PACKET MUSEUM · 馆藏工作台</small></div></div>
@@ -31,9 +32,9 @@ dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line);pad
   <main class="grid">
     <aside class="panel side" id="side" aria-label="协议目录"><header class="panel-head"><h2>协议目录</h2><small id="count">08 项</small></header></aside>
     <section class="panel stage" aria-label="主舞台">
-      <header class="panel-head"><div class="views" aria-label="舞台视图"><button id="show-network" aria-pressed="true">拓扑</button><button id="show-packet" aria-pressed="false">报文</button></div><small id="stage-status" class="stage-status"></small></header>
+      <header class="panel-head"><div class="views" aria-label="舞台视图"><button id="show-network" aria-pressed="true">网络</button><button id="show-sequence" aria-pressed="false">时序</button><button id="show-packet" aria-pressed="false">报文</button></div><small id="stage-status" class="stage-status"></small></header>
       <div id="canvas" class="canvas">
-        <svg viewBox="0 0 760 460" role="group" aria-label="DNS 网络拓扑">
+        <svg id="network-svg" viewBox="0 0 760 460" role="group" aria-label="DNS 网络拓扑">
           <defs>
             <linearGradient id="plastic" x2="0" y2="1"><stop stop-color="#f8e7bc"/><stop offset=".49" stop-color="#c8b68b"/><stop offset="1" stop-color="#978358"/></linearGradient>
             <linearGradient id="steel" x2="0" y2="1"><stop stop-color="#7d887d"/><stop offset="1" stop-color="#3b4741"/></linearGradient>
@@ -74,10 +75,12 @@ dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line);pad
           <g class="node" data-node="root" transform="translate(287 32)"><ellipse class="ground" cx="41" cy="89" rx="44" ry="6"/><use href="#rack" transform="scale(.52)"/><text x="38" y="113">根服务器</text><text class="address" x="38" y="132">192.0.2.53</text></g>
           <g class="node" data-node="tld" transform="translate(567 43)"><ellipse class="ground" cx="42" cy="89" rx="44" ry="6"/><use href="#rack" transform="scale(.52)"/><text x="38" y="113">顶级域服务器</text><text class="address" x="38" y="132">203.0.113.17</text></g>
           <g class="node" data-node="auth" transform="translate(623 252)"><ellipse class="ground" cx="42" cy="89" rx="44" ry="6"/><use href="#rack" transform="scale(.52)"/><text x="39" y="114">权威服务器</text><text class="address" x="39" y="134">203.0.113.53</text></g>
-          <g id="packet" class="packet" tabindex="0" role="button" aria-label="检查当前报文字节"><rect x="-34" y="-12" width="68" height="24" rx="3"/><text id="packet-tag" y="4"></text></g>
+          <circle id="arrival" fill="none" stroke="var(--route)" stroke-width="2" opacity="0" pointer-events="none"/>
+          <g id="packet" class="packet" tabindex="0" role="button" aria-label="检查当前报文字节"><circle class="head" r="4"/><g id="packet-badge"><rect x="-34" y="-10" width="68" height="20" rx="3"/><text id="packet-tag" y="4"></text></g></g>
         </svg>
       </div>
-      <div id="legend" class="legend"><b>━━</b> 当前路径　┄┄ 其他连接　·　教学拓扑</div>
+      <div id="legend" class="legend"><b>━━</b> 当前路径　┄┄ 其他连接 <span id="stage-phase"></span></div>
+      <div id="sequence" class="sequence" hidden></div>
       <div id="packet-view" class="packet-view" hidden>
         <div class="frame-head" id="frame-head"></div><div class="layers" id="layers" aria-label="报文封装层"></div>
         <div class="inspector"><div class="fields" id="fields" aria-label="报文字段"></div><div class="dump" id="dump" aria-label="十六进制和 ASCII"></div></div>
@@ -85,10 +88,10 @@ dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line);pad
     </section>
     <aside class="panel knowledge" aria-label="课程知识和步骤讲解">
       <header class="panel-head"><h2>课程知识卡</h2><small>DNS / 05</small></header>
-      <section><h3>域名系统</h3><p>客户端不必知道服务器地址，只要把名字交给解析器。缓存未命中时，解析器沿着域名委派向下查找。</p>
+      <section><h3>域名系统</h3><p>DNS 将域名映射为地址。客户端只向递归解析器提问，解析器没有缓存时再向根、顶级域和权威服务器逐站查找。答案可按 TTL 缓存。</p>
         <dl class="facts"><div><dt>所在层</dt><dd>应用层（第 7 层）</dd></div><div><dt>端口</dt><dd>53 / UDP、TCP</dd></div><div><dt>关键概念</dt><dd>递归、迭代、引荐、缓存</dd></div><div><dt>规范</dt><dd>RFC 1034、RFC 1035</dd></div></dl>
       </section>
-      <section aria-live="polite" aria-atomic="true"><span class="stamp" id="step-stamp"></span><h3 id="step-title"></h3><p id="step-text"></p><p id="step-route"></p></section>
+      <section aria-live="polite" aria-atomic="true"><span class="stamp" id="step-stamp"></span><h3 id="step-title"></h3><p id="step-text"></p><dl id="step-facts" class="facts"></dl><p id="step-route"></p></section>
     </aside>
     <section class="panel flow" aria-labelledby="flow-title">
       <header class="panel-head"><h2 id="flow-title">数据包流</h2><div class="playback"><label><span hidden>播放速度</span><select id="rate" aria-label="播放速度"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option></select></label><button id="prev" aria-label="上一个包" title="上一个包">◀</button><button class="primary" id="play">▶ 播放</button><button id="next" title="下一个包">单步 ▶</button><button id="reset" aria-label="重置" title="重置">↺</button></div></header>
@@ -110,276 +113,5 @@ dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line);pad
   [2,77,0,0,0,20,2,77,0,0,0,1,8,0,69,0,0,73,37,8,64,0,64,17,41,31,198,51,100,53,192,0,2,20,0,53,207,48,0,53,59,150,76,33,129,128,0,1,0,1,0,0,0,0,3,108,97,98,7,101,120,97,109,112,108,101,0,0,1,0,1,192,12,0,1,0,1,0,0,0,60,0,4,203,0,113,42]
 ]
 </script>
-<script>
-'use strict';
-const $ = id => document.getElementById(id);
-const octets = JSON.parse($('frames').textContent).map(bytes => Uint8Array.from(bytes));
-const lesson = [
-  ['客户端问询','把名字交给解析器'],['根区引荐','找到负责 .example 的服务器'],['顶级域引荐','找到 lab.example 的权威服务器'],['权威查询','取得 A 记录'],['返回结果','把地址交回工作站']
-];
-const nodes = {
- client:['工作站', [[174,322],[211,329],[330,329],[360,287]]], gateway:['家用路由器'], resolver:['递归解析器'],
- root:['根服务器', [[386,216],[365,168],[337,120]]], tld:['顶级域服务器', [[478,243],[532,185],[566,108]]], auth:['权威服务器', [[479,283],[548,292],[620,295]]]
-};
-const scenario = [
- ['client','resolver',0,'查询','RD=1 · A lab.example','工作站只发这一个递归请求。它希望收到最终答案，而不是自己去问根服务器。'],
- ['resolver','root',1,'查询','向根区查询 A lab.example','本地缓存未命中。解析器从根区开始迭代询问；此包的 RD 位为 0。'],
- ['root','resolver',1,'引荐','委派 .example · NS + 胶水','根区不知道实验室主机的地址。它给出 .example 的 NS 记录和对应地址，让解析器知道下一站。'],
- ['resolver','tld',2,'查询','向 .example 查询 A lab.example','解析器使用引荐里的地址，向顶级域服务器继续问同一个问题。'],
- ['tld','resolver',2,'引荐','委派 lab.example · NS + 胶水','顶级域服务器把 lab.example 区委派给权威服务器。附加区的胶水记录给出可连接的 IPv4 地址。'],
- ['resolver','auth',3,'查询','向权威服务器查询 A lab.example','解析器向权威服务器发出最后一次迭代查询；这个事务使用独立的查询 ID。'],
- ['auth','resolver',3,'应答','权威 A · 203.0.113.42 · TTL 60','权威服务器返回 A 记录，设置 AA 标志。解析器可以按记录的 TTL 缓存这个结果。'],
- ['resolver','client',4,'应答','递归 A · 203.0.113.42 · TTL 60','解析器用最初的事务 ID 回答工作站，并置 RA 位表明自己支持递归；它不是该区的权威。']
-];
-const words = ['全部','链路','网络','传输','应用','安全'];
-const courses = [
- ['Ethernet / ARP','同网段寻址',1,2], ['IPv4','逐跳转发',2,3], ['TCP','握手与关闭',3,4], ['UDP','无连接数据报',3,4],
- ['DNS','名字如何变成地址',4,7], ['HTTP','请求与响应',4,7], ['TLS 1.3','建立加密通道',5,6], ['DHCP','分配 IPv4 租约',4,7]
-];
-const time = ['0.000','0.008','0.020','0.021','0.035','0.036','0.052','0.053'];
-const svgNS = 'http://www.w3.org/2000/svg';
-const motion = matchMedia('(prefers-reduced-motion: reduce)');
-const mobile = matchMedia('(max-width:760px)');
-const pad = n => String(n).padStart(2,'0');
-const hex = (n,len=2) => n.toString(16).padStart(len,'0');
-const ip = (b,i) => b.slice(i,i+4).join('.');
-const mac = (b,i) => Array.from(b.slice(i,i+6), n => hex(n)).join(':');
-const word = (b,i) => b[i]*256+b[i+1];
-const tag = n => `#${pad(n+1)}`;
-const routeText = ([a,b]) => `${nodes[a][0]} → ${nodes[b][0]}`;
-let index = 0, elapsed = 0, frame = null, last = null, running = false, finished = false, packetView = false;
-let layer = 0, category = 0, expanded = true, selectedField = null;
-
-for (const [id, [, points]] of Object.entries(nodes)) if (points) {
-  const cable = document.createElementNS(svgNS,'polyline');
-  cable.setAttribute('points', points.map(p => p.join(',')).join(' '));
-  cable.setAttribute('class','wire');
-  cable.dataset.link = id;
-  $('cables').append(cable);
-}
-
-function currentPath() {
-  const [from,to] = scenario[index];
-  if (from === 'client') return nodes.client[1];
-  if (to === 'client') return [...nodes.client[1]].reverse();
-  return from === 'resolver' ? nodes[to][1] : [...nodes[from][1]].reverse();
-}
-
-function placePacket() {
-  const path = $('active-wire');
-  const fraction = motion.matches ? 0.55 : 0.17 + 0.71*Math.min(1,elapsed/1450);
-  const p = path.getPointAtLength(path.getTotalLength()*fraction);
-  $('packet').setAttribute('transform',`translate(${p.x} ${p.y-12})`);
-}
-
-function renderCatalog() {
-  const q = $('search').value.trim().toLowerCase();
-  let count = 0;
-  [...$('courses').children].forEach((item,i) => {
-    const [name,desc,group,level] = courses[i];
-    item.hidden = (category !== 0 && category !== group) || (layer !== 0 && layer !== level) || !(name + desc).toLowerCase().includes(q);
-    if (!item.hidden) count++;
-  });
-  $('count').textContent = `${pad(count)} 项`;
-  $('no-results').hidden = count > 0;
-  $('steps').hidden = !expanded;
-  $('dns-course').setAttribute('aria-expanded',expanded);
-  $('course-chevron').textContent = expanded ? '⌄' : '›';
-  [...$('filters').children].forEach((button,i) => button.setAttribute('aria-pressed',i === category));
-  [...$('osi').querySelectorAll('button')].forEach((button,i) => {
-    button.setAttribute('aria-pressed',i+1 === layer);
-    button.classList.toggle('course-level',i === 6 && layer === 0);
-  });
-}
-
-$('osi').insertAdjacentHTML('beforeend',Array.from({length:7},(_,i) => `<button type="button" aria-label="OSI 第 ${i+1} 层" data-layer="${i+1}">${i+1}</button>`).join(''));
-$('filters').innerHTML = words.map((word,i) => `<button type="button" data-category="${i}">${word}</button>`).join('');
-const stepList = lesson.map(([title],i) => `<li><button type="button" data-step="${i}"><span class="step-num">${i+1}</span>${title}</button></li>`).join('');
-$('courses').innerHTML = courses.map(([name,desc],i) => {
-  const label = `<span class="course-symbol" aria-hidden="true">${i === 4 ? '●' : '○'}</span><span><b>${name}</b><small>${desc}</small></span>`;
-  return i === 4 ? `<li class="course"><button type="button" class="course-title dns" id="dns-course" aria-controls="steps">${label}<span id="course-chevron" class="chevron" aria-hidden="true"></span></button><ol class="steps" id="steps">${stepList}</ol></li>`
-    : `<li class="course"><div class="course-title">${label}</div></li>`;
-}).join('');
-$('rows').innerHTML = scenario.map(([, , , kind, label],i) => {
-  const b = octets[i];
-  return `<tr data-index="${i}"><td><button type="button" aria-label="定位到报文 ${i+1}">${tag(i)}</button></td><td>${time[i]} s</td><td>${ip(b,26)}</td><td>${ip(b,30)}</td><td><span class="dot ${kind === '应答' ? 'answer' : kind === '引荐' ? 'referral' : ''}"></span>DNS</td><td>${label}</td><td>${b.length} B</td></tr>`;
-}).join('');
-
-function render() {
-  const packet = scenario[index], [from,to,step,kind,,explain] = packet;
-  $('stage-status').textContent = `${tag(index)} ${kind} · ${nodes[from][0]} → ${nodes[to][0]}`;
-  $('packet-tag').textContent = `${tag(index)} ${kind}`;
-  $('active-wire').setAttribute('d','M' + currentPath().map(p=>p.join(' ')).join(' L'));
-  $('active-wire').dataset.source = from;
-  document.querySelectorAll('[data-node]').forEach(node => node.classList.toggle('active',[from,to].includes(node.dataset.node) || packet.includes('client') && node.dataset.node === 'gateway'));
-  placePacket();
-  $('step-stamp').textContent = `步骤 ${step+1} / ${lesson.length} · 报文 ${tag(index)}`;
-  $('step-title').textContent = lesson[step][1];
-  $('step-text').textContent = explain;
-  $('step-route').textContent = routeText(packet);
-  [...$('steps').querySelectorAll('button')].forEach((button,i) => i === step ? button.setAttribute('aria-current','step') : button.removeAttribute('aria-current'));
-  [...$('rows').children].forEach((row,i) => {
-    row.classList.toggle('future', i > index);
-    row.classList.toggle('current', i === index);
-    if (i === index) row.setAttribute('aria-current','true'); else row.removeAttribute('aria-current');
-  });
-  const row = $('rows').children[index], log = $('log');
-  if (row.offsetTop + row.offsetHeight > log.scrollTop + log.clientHeight) log.scrollTop = row.offsetTop + row.offsetHeight - log.clientHeight;
-  if (row.offsetTop < log.scrollTop + 23) log.scrollTop = Math.max(0,row.offsetTop - 23);
-  $('prev').disabled = index === 0;
-  $('next').disabled = index === scenario.length-1;
-  updatePlay();
-  if (packetView) renderBytes();
-}
-
-function updatePlay() { $('play').textContent = running ? 'Ⅱ 暂停' : finished ? '↻ 重播' : '▶ 播放'; }
-function pause() { running = false; cancelAnimationFrame(frame); frame = null; last = null; updatePlay(); }
-function jump(i) {
-  pause(); index = Math.max(0,Math.min(scenario.length-1,i)); elapsed = 0; finished = false; render();
-}
-function tick(now) {
-  if (!running) return;
-  if (last !== null) elapsed += Math.min(now-last,100)*Number($('rate').value);
-  last = now;
-  if (elapsed >= 1450) {
-    if (index === scenario.length-1) { finished = true; placePacket(); pause(); return; }
-    elapsed -= 1450; index++; render();
-  }
-  if (!motion.matches && !packetView) placePacket();
-  frame = requestAnimationFrame(tick);
-}
-function play() {
-  if (running) { pause(); return; }
-  if (finished) jump(0);
-  running = true; updatePlay(); frame = requestAnimationFrame(tick);
-}
-
-const groups = [['Ethernet',14,'ether'],['IPv4',20,'ip'],['UDP',8,'udp'],['DNS',0,'dns']];
-function readName(b,pos) {
-  const labels = []; let end; const seen = new Set();
-  while (pos < b.length && !seen.has(pos)) {
-    seen.add(pos);
-    const length = b[pos++];
-    if (length === 0) return [labels.join('.') || '.',end ?? pos];
-    if ((length & 192) === 192 && pos < b.length) { end ??= pos+1; pos = 42+((length & 63)*256+b[pos]); }
-    else if (length > 63 || pos+length > b.length) break;
-    else { labels.push(String.fromCharCode(...b.slice(pos,pos+length))); pos += length; }
-  }
-  throw new Error('样例 DNS 名称无效');
-}
-function fieldsOf(b) {
-  const uint = (i,n) => n === 1 ? b[i] : word(b,i), H = (i,n=2) => `0x${hex(uint(i,n),n*2)}`;
-  const flag = word(b,44);
-  const result = [
-    [['目的 MAC',0,6,mac(b,0),'此观察链路上的下一跳接口。'],['源 MAC',6,6,mac(b,6),'当前发帧网口的硬件地址。'],['类型',12,2,H(12),'0x0800 表示后面是 IPv4。']],
-    [['版本 / IHL',14,1,`${b[14]>>4} / ${(b[14]&15)*4} B`,'无选项，头长 20 字节。'],['DSCP / ECN',15,1,H(15,1),'本例未设置服务等级或拥塞标记。'],['总长度',16,2,`${word(b,16)} B`,'包含 IP 首部和 UDP 数据报。'],['标识',18,2,H(18),'同一 IP 数据报的分片共享此值。'],['标志 / 偏移',20,2,`DF=${(b[20]>>6)&1} · 偏移 ${word(b,20)&8191}`,'本例不分片。'],['TTL',22,1,b[22],'路由转发时递减。'],['上层协议',23,1,`${b[23]} · UDP`,'载荷是 UDP 数据报。'],['首部校验和',24,2,H(24),'只校验 IPv4 首部。'],['源 IPv4',26,4,ip(b,26),'IP 源端地址。'],['目的 IPv4',30,4,ip(b,30),'IP 目的端地址。']],
-    [['源端口',34,2,word(b,34),'发送端的 UDP 端口。'],['目的端口',36,2,word(b,36),'查询投递到 53，应答返回客户端端口。'],['UDP 长度',38,2,`${word(b,38)} B`,'首部与 DNS 负载合计。'],['UDP 校验和',40,2,H(40),'覆盖伪首部、UDP 首部与数据。']],
-    [['事务 ID',42,2,H(42),'同一对查询与应答使用相同 ID。'],['标志',44,2,`${H(44)} · ${[flag&0x8000?'QR':'',flag&0x0400?'AA':'',flag&0x0100?'RD':'',flag&0x0080?'RA':''].filter(Boolean).join(' ') || '查询'}`,'QR 标识应答；AA 为权威，RD 请求递归，RA 表示可递归。'],['问题数',46,2,word(b,46),'Question 区的问题数量。'],['回答数',48,2,word(b,48),'Answer 区的资源记录数量。'],['权威数',50,2,word(b,50),'Authority 区的资源记录数量。'],['附加数',52,2,word(b,52),'Additional 区的资源记录数量。']]
-  ];
-  const dns = result[3];
-  const [question,end] = readName(b,54);
-  dns.push(['查询名',54,end-54,question,'每个标签前先写长度，末尾字节为 00。'],['查询类型',end,2,`${word(b,end)} · A`,'请求 IPv4 地址记录。'],['查询类',end+2,2,`${word(b,end+2)} · IN`,'互联网类。']);
-  let pos = end+4;
-  for (const [offset, label] of [[48,'回答'],[50,'权威'],[52,'附加']]) for (let i=0;i<word(b,offset);i++) {
-    const [owner,next] = readName(b,pos), type = word(b,next), ttl = new DataView(b.buffer).getUint32(next+4), length = word(b,next+8), data = next+10;
-    dns.push([`${label}名称`,pos,next-pos,owner,'压缩指针以 DNS 消息起点为基准。'],['记录类型',next,2,`${type} · ${type === 1 ? 'A' : 'NS'}`,'A 保存 IPv4，NS 指向域名服务器。'],['记录类',next+2,2,`${word(b,next+2)} · IN`,'本记录属于互联网类。'],['TTL',next+4,4,`${ttl} s`,'此记录还可缓存的秒数。'],['记录数据长度',next+8,2,`${length} B`,'紧接其后的 RDATA 字节数。'],[`${label}数据`,data,length,type === 1 ? ip(b,data) : readName(b,data)[0],'引荐给出服务器名及胶水，回答给出主机地址。']);
-    pos = data+length;
-  }
-  return result;
-}
-
-function highlight(button) {
-  selectedField?.classList.remove('selected');
-  selectedField = button;
-  button?.classList.add('selected');
-  const start = Number(button?.dataset.start), end = start+Number(button?.dataset.length);
-  const dump = $('dump');
-  dump.querySelectorAll('[data-byte]').forEach(span => span.classList.toggle('selected',Number(span.dataset.byte)>=start && Number(span.dataset.byte)<end));
-  const first = dump.querySelector('.byte.selected');
-  if (first) {
-    const byte = first.getBoundingClientRect(), area = dump.getBoundingClientRect();
-    if (byte.top < area.top || byte.bottom > area.bottom) dump.scrollTop += byte.top-area.top-8;
-  }
-}
-
-function renderBytes() {
-  const b = octets[index], fields = fieldsOf(b);
-  $('frame-head').textContent = `${tag(index)} · ${routeText(scenario[index])} · ${b.length} B · 不含链路 FCS`;
-  $('layers').innerHTML = groups.map(([label,len,color],i) => `<button type="button" data-group="${i}" style="flex:${len || b.length-42} 1 49px;--layer:var(--${color})"><b>${label}</b><small>${len || b.length-42} B</small></button>`).join('');
-  $('fields').innerHTML = fields.map((items,i) => `<section id="group-${i}"><h3 style="--layer:var(--${groups[i][2]})">${groups[i][0]} / ${items.length} 项</h3>${items.map(([name,start,length,value,explain]) => `<button type="button" class="field" data-start="${start}" data-length="${length}"><b>${name}</b><code>${value}</code><small>${explain}</small></button>`).join('')}</section>`).join('');
-  const lines = [];
-  const width = mobile.matches ? 5 : 8;
-  for (let i=0;i<b.length;i+=width) {
-    const slice = Array.from(b.slice(i,i+width));
-    const ascii = n => n < 32 || n > 126 ? '.' : n === 38 ? '&amp;' : n === 60 ? '&lt;' : n === 62 ? '&gt;' : String.fromCharCode(n);
-    lines.push(`<div class="dump-line"><span class="offset">${hex(i,4)}</span><span>${slice.map((n,j)=>`<span class="byte" data-byte="${i+j}">${hex(n)}</span>`).join('')}</span><span class="ascii">${slice.map((n,j)=>`<span class="byte" data-byte="${i+j}">${ascii(n)}</span>`).join('')}</span></div>`);
-  }
-  $('dump').innerHTML = lines.join('');
-  $('fields').scrollTop = 0; $('dump').scrollTop = 0; highlight(null);
-}
-
-function setView(bytes,focus=false) {
-  if (bytes) pause();
-  packetView = bytes;
-  $('canvas').hidden = $('legend').hidden = bytes;
-  $('packet-view').hidden = !bytes;
-  $('show-network').setAttribute('aria-pressed',!bytes);
-  $('show-packet').setAttribute('aria-pressed',bytes);
-  if (bytes) renderBytes(); else placePacket();
-  if (focus) $(bytes ? 'show-packet' : 'show-network').focus();
-}
-
-$('filters').onclick = e => { if (e.target.dataset.category !== undefined) { category = Number(e.target.dataset.category); renderCatalog(); } };
-$('osi').onclick = e => { if (e.target.dataset.layer) { const value = Number(e.target.dataset.layer); layer = layer === value ? 0 : value; renderCatalog(); } };
-$('search').oninput = renderCatalog;
-$('search').onkeydown = e => { if (e.key === 'Enter' && mobile.matches && !$('drawer').open) $('drawer').showModal(); };
-$('dns-course').onclick = () => { expanded = !expanded; renderCatalog(); };
-$('steps').onclick = e => {
-  const button = e.target.closest('[data-step]'); if (!button) return;
-  jump(scenario.findIndex(p => p[2] === Number(button.dataset.step)));
-  if ($('drawer').open) $('drawer').close();
-};
-$('rows').onclick = e => { const row = e.target.closest('[data-index]'); if (row) jump(Number(row.dataset.index)); };
-$('show-network').onclick = () => setView(false);
-$('show-packet').onclick = () => setView(true);
-$('packet').onclick = () => setView(true,true);
-$('packet').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setView(true,true); } };
-$('layers').onclick = e => {
-  const i = e.target.closest('[data-group]')?.dataset.group; if (i === undefined) return;
-  const group = $(`group-${i}`);
-  $('fields').scrollTop += group.getBoundingClientRect().top-$('fields').getBoundingClientRect().top;
-  const first = group.querySelector('.field');
-  first.focus({preventScroll:true});
-  highlight(first);
-};
-$('fields').onpointerover = e => { const field = e.target.closest('.field'); if (field) highlight(field); };
-$('fields').onpointerleave = () => highlight(document.activeElement.closest('.field'));
-$('fields').onfocusin = e => highlight(e.target.closest('.field'));
-$('fields').onfocusout = e => { if (!$('fields').contains(e.relatedTarget)) highlight(null); };
-$('play').onclick = play;
-$('prev').onclick = () => jump(index-1);
-$('next').onclick = () => jump(index+1);
-$('reset').onclick = () => jump(0);
-$('layout').onclick = () => $('layout').setAttribute('aria-pressed',$('app').classList.toggle('wide'));
-$('theme').onclick = () => {
-  const root = document.documentElement;
-  root.dataset.theme = (root.dataset.theme || root.dataset.base) === 'light' ? 'dark' : 'light';
-};
-$('open-catalog').onclick = () => $('drawer').showModal();
-$('close-catalog').onclick = () => $('drawer').close();
-function moveCatalog() {
-  if ($('drawer').open) $('drawer').close();
-  $(mobile.matches ? 'drawer' : 'side').append($('catalog'));
-  if (packetView) renderBytes();
-}
-mobile.addEventListener('change',moveCatalog);
-motion.addEventListener('change',placePacket);
-document.addEventListener('visibilitychange',() => { if (document.hidden && running) pause(); });
-document.addEventListener('keydown',e => {
-  if (e.defaultPrevented || e.altKey || e.metaKey || e.ctrlKey || $('drawer').open || e.target.closest('input,select,textarea')) return;
-  if (e.key === ' ' && !e.target.closest('button,[role=button]')) { e.preventDefault(); play(); }
-  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); jump(index+(e.key === 'ArrowLeft' ? -1 : 1)); }
-});
-moveCatalog(); renderCatalog(); render();
-</script>
+<script src="shared/dns-lesson.js"></script>
 </html>

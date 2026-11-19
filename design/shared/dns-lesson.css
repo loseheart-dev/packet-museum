@@ -1,0 +1,28 @@
+.canvas,.sequence{overflow:hidden}
+.canvas{background-image:repeating-linear-gradient(27deg,transparent 0 22px,var(--grid) 22px 23px),repeating-linear-gradient(153deg,transparent 0 22px,var(--grid) 22px 23px);background-size:auto}
+.views button[aria-pressed=true]:hover{background:var(--accent);color:var(--accent-ink)}
+#stage-phase{float:right;color:var(--accent);font-weight:700}
+.packet .head{fill:var(--accent);stroke:var(--panel);stroke-width:1}
+.packet[data-kind=引荐] .head,.packet[data-kind=引荐] rect{fill:var(--route)}
+.packet[data-kind=应答] .head,.packet[data-kind=应答] rect{fill:var(--amber)}
+.packet[data-kind=引荐] text,.packet[data-kind=应答] text{fill:var(--panel)}
+.node.received .ground{fill:var(--route);opacity:.45}
+.node.received text:not(.address){fill:var(--route)}
+.steps .done:not([aria-current]) .step-num{color:var(--accent);border-color:var(--accent)}
+.sequence{flex:1;min-height:0;overflow:auto;background:var(--stage)}
+.sequence svg{display:block;width:100%;min-height:100%}
+.seq-label,.seq-caption{text-anchor:middle;fill:var(--ink);font-size:14px;font-weight:700}
+.seq-lifeline{stroke:var(--path);stroke-width:1;stroke-dasharray:3 4}
+.seq-row{--seq:var(--accent);cursor:pointer}
+.seq-row.referral{--seq:var(--route)}
+.seq-row.answer{--seq:var(--amber)}
+.seq-row.pending{visibility:hidden;pointer-events:none}
+.seq-hit{fill:transparent}
+.seq-row.current .seq-hit,.seq-row:hover .seq-hit,.seq-row:focus-visible .seq-hit{fill:var(--selected)}
+.seq-arrow{stroke:var(--seq);stroke-width:1.8;stroke-dasharray:1 1}
+.seq-tip,.seq-caption{fill:var(--seq)}
+.seq-row.flying .seq-tip{visibility:hidden}
+.seq-row.current .seq-arrow{stroke-width:2.8}
+.seq-num{fill:var(--muted);font:11px var(--mono)}
+@media(min-width:1051px){.grid{grid-template-columns:clamp(238px,23vw,310px) minmax(0,1fr) clamp(215px,21vw,290px);grid-template-rows:minmax(0,1fr) min(28.5vh,255px)}}
+@media(max-width:760px){.sequence{height:317px;flex:none}.seq-label,.seq-caption{font-size:11px}.seq-num{font-size:8px}}
