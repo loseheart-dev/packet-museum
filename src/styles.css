@@ -32,8 +32,8 @@ dialog{color:var(--ink);background:var(--panel);border:1px solid var(--line);pad
 [data-tone=teal]{--kind:var(--teal)}
 [data-tone=plum]{--kind:var(--plum)}
 [data-tone=red]{--kind:var(--red)}
-.wire{stroke:var(--idle-lane);stroke-width:1.4;stroke-dasharray:4.2 3.5;transition:stroke .35s,stroke-width .35s}
-.wire.active{stroke:var(--kind);stroke-width:1.68;stroke-dasharray:4.2 3.5;animation:lane-flow .55s linear infinite}
+.wire{stroke:var(--idle-lane);stroke-width:1.4;stroke-dasharray:4.2 3.5;transition:stroke calc(.35s / var(--playback-scale)),stroke-width calc(.35s / var(--playback-scale))}
+.wire.active{stroke:var(--kind);stroke-width:1.68;stroke-dasharray:4.2 3.5;animation:lane-flow calc(.55s / var(--playback-scale)) linear infinite}
 .legend b{color:var(--kind,var(--query))}
 @keyframes lane-flow{to{stroke-dashoffset:-7.7}}
 .packet .halo,.packet .head,.packet .trail,.packet-band{fill:var(--kind)}

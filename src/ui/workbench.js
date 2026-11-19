@@ -30,6 +30,14 @@ export function mountWorkbench(lesson) {
   const trace = mountTrace(lesson, packets, labels, groups);
   const renderBytes = mountInspector(on, labels);
   let frame = null, last = null, view = 'network', inspected, traceKey;
+  const rate = $('rate');
+  let timeScale;
+  function updateRate() {
+    timeScale = Number(rate.value) / 2;
+    $('canvas').style.setProperty('--playback-scale', timeScale);
+  }
+  on(rate, 'change', updateRate);
+  updateRate();
   const activeUnit = () => units[state.index];
   const currentPacket = () => state.started ? activeUnit().members[0] : packets.length ? 0 : undefined;
   const overview = lesson.overview;
@@ -109,7 +117,7 @@ export function mountWorkbench(lesson) {
 
   function tick(now) {
     const previous = state.index;
-    if (last !== null) playback.advance(Math.min(now - last, 100) * Number($('rate').value));
+    if (last !== null) playback.advance(Math.min(now - last, 100) * timeScale);
     last = now;
     if (state.finished) {
       pause(); render(true);
