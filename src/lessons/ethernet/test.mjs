@@ -6,8 +6,10 @@ import lesson from './index.js';
 test('Ethernet broadcasts only the ARP request and preserves bytes on switch egress', () => {
   const { frames } = lesson;
   const hex = bytes => Buffer.from(bytes).toString('hex');
-  assert.equal(hex(frames[0].bytes), 'ffffffffffff00005e0053100806000108000604000100005e005310c0a8010a000000000000c0a80114');
-  assert.equal(hex(frames[3].bytes), '00005e00531000005e0053200806000108000604000200005e005320c0a8011400005e005310c0a8010a');
+  assert.equal(hex(frames[0].bytes), 'ffffffffffff00005e0053100806000108000604000100005e005310c0a8010a000000000000c0a80114' + '00'.repeat(18));
+  assert.equal(hex(frames[3].bytes), '00005e00531000005e0053200806000108000604000200005e005320c0a8011400005e005310c0a8010a' + '00'.repeat(18));
+  assert.deepEqual(frames.map(frame => frame.bytes.length), [...Array(5).fill(60), ...Array(7).fill(66)]);
+  assert.deepEqual(lesson.steps[1].parallel, [['ethernet-2', 'ethernet-3']]);
   assert.deepEqual(frames.slice(1, 3).map(frame => frame.path), [['switch', 'lan'], ['switch', 'router']]);
   for (const [ingress, egress] of [[0, 1], [0, 2], [3, 4], [5, 6], [7, 8], [9, 10]]) {
     assert.deepEqual(frames[ingress].bytes, frames[egress].bytes);

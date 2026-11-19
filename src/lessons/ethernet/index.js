@@ -20,15 +20,24 @@ const stepEnds = [0, 1, 3, 5, 9, 11, 12];
 export default {
   meta: { id: 'ethernet', title: 'Ethernet', subtitle: '帧与交换机', group: 1, order: 20, layer: 2 },
   overview, outro, nodes, links, frames,
-  sequenceNodes: ['client', 'switch', 'lan', 'router', 'isp'],
+  sequenceNodes: ['client', 'switch', 'lan', 'router', 'isp'], linkAddresses: true, timeColumn: true,
   legend: {
-    arp: { label: 'ARP', tone: 'query' },
+    arp: { label: 'ARP', tone: 'navy' },
     nas: { label: '发往 NAS', tone: 'reply' },
     internet: { label: '发往互联网', tone: 'referral' },
   },
   steps: steps.map((step, i) => ({
     ...step, frames: frames.slice(stepEnds[i], stepEnds[i + 1]).map(frame => frame.id),
     ...(i === 0 ? { closeup: ['client'] } : {}),
+    ...(i === 1 ? {
+      parallel: [['ethernet-2', 'ethernet-3']],
+      nodeUpdates: { switch: { status: '…:53:10 → 端口 1' } },
+      events: [{ node: 'switch', time: '0.000005s', text: '…:53:10 在端口 1' }],
+    } : {}),
+    ...(i === 2 ? {
+      nodeUpdates: { switch: { status: ':53:10→1 · :53:20→2', after: 'ethernet-4' }, client: { status: 'ARP：192.168.1.20 → …:53:20', after: 'ethernet-5' } },
+      events: [{ node: 'switch', time: '0.000052s', after: 'ethernet-4', text: '…:53:20 在端口 2' }],
+    } : {}),
     ...(i === 5 ? { wide: true } : { nodes: local }),
   })),
 };

@@ -5,10 +5,9 @@ const routerMac = '00:00:5e:00:53:01', uplinkMac = '00:00:5e:00:53:02', ispMac =
 const clientIp = '192.168.1.10', nasIp = '192.168.1.20', publicIp = '198.51.100.7', webIp = '203.0.113.10';
 const broadcast = 'ff:ff:ff:ff:ff:ff';
 
-// shortcut: omit Ethernet padding until the shared inspector can separate it from ARP.
-const request = ethernet({ src: clientMac, dst: broadcast, type: 0x0806,
+const request = ethernet({ src: clientMac, dst: broadcast, type: 0x0806, pad: true,
   payload: arp({ operation: 1, senderMac: clientMac, senderIp: clientIp, targetIp: nasIp }) });
-const reply = ethernet({ src: nasMac, dst: clientMac, type: 0x0806,
+const reply = ethernet({ src: nasMac, dst: clientMac, type: 0x0806, pad: true,
   payload: arp({ operation: 2, senderMac: nasMac, senderIp: nasIp, targetMac: clientMac, targetIp: clientIp }) });
 
 function tcpFrame(srcMac, dstMac, { src, dst, id, ttl, srcPort, dstPort, seq, ack = 0 }) {
