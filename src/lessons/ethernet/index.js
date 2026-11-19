@@ -2,11 +2,11 @@ import { overview, outro, steps } from './copy.js';
 import { frames } from './frames.js';
 
 const nodes = [
-  { id: 'client', label: 'Client', address: 'MAC …:53:10', kind: 'pc', x: 152, y: 362 },
-  { id: 'switch', label: 'Switch', address: '8 ports', kind: 'switch', x: 265, y: 230, labelAt: { x: -52, y: -26, anchor: 'end' } },
+  { id: 'client', label: '客户端', address: 'MAC …:53:10', kind: 'pc', x: 152, y: 362 },
+  { id: 'switch', label: '交换机', address: '8 个端口', kind: 'switch', x: 265, y: 230, labelAt: { x: -52, y: -26, anchor: 'end' } },
   { id: 'lan', label: 'NAS', address: 'MAC …:53:20', kind: 'server', x: 332, y: 132, scale: .86, labelAt: { x: -43, y: -52, anchor: 'end' } },
-  { id: 'router', label: 'Router', address: 'MAC …:53:01', kind: 'router', x: 449, y: 250 },
-  { id: 'isp', label: 'ISP Router', address: 'MAC …:53:fe', kind: 'router', x: 624, y: 325 },
+  { id: 'router', label: '路由器', address: 'MAC …:53:01', kind: 'router', x: 449, y: 250 },
+  { id: 'isp', label: 'ISP 路由器', address: 'MAC …:53:fe', kind: 'router', x: 624, y: 325 },
 ];
 const links = [
   { nodes: ['client', 'switch'], points: [[224, 292], [243, 233]] },
@@ -23,8 +23,8 @@ export default {
   sequenceNodes: ['client', 'switch', 'lan', 'router', 'isp'],
   legend: {
     arp: { label: 'ARP', tone: 'query' },
-    nas: { label: 'To the NAS', tone: 'reply' },
-    internet: { label: 'To the internet', tone: 'referral' },
+    nas: { label: '发往 NAS', tone: 'reply' },
+    internet: { label: '发往互联网', tone: 'referral' },
   },
   steps: steps.map((step, i) => ({
     ...step, frames: frames.slice(stepEnds[i], stepEnds[i + 1]).map(frame => frame.id),
