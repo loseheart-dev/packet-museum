@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN" data-base="light">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='1' y='1' width='30' height='30' fill='%23f8f3e5' stroke='%23254f38'/%3E%3Ctext x='16' y='21' text-anchor='middle' fill='%23254f38' font-family='monospace' font-size='14' font-weight='bold'%3EPM%3C/text%3E%3C/svg%3E">
+<title>互联网协议</title>
+<div class="app" id="app">
+  <header class="top">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">IP</span><h1><a href="#/">互联网协议</a></h1></div>
+    <div class="osi" id="osi" aria-label="OSI 层级筛选"><span>OSI 层</span></div>
+    <input class="search" id="search" type="search" aria-label="搜索协议" placeholder="搜索协议">
+    <div class="tools"><button class="drawer-open" id="open-catalog" title="协议列表" aria-label="协议列表">☰</button><button id="layout" title="仅显示图" aria-label="仅显示图" aria-pressed="false">▣</button><button id="theme" title="深色模式" aria-label="深色模式">◐</button></div>
+  </header>
+  <main class="grid">
+    <aside class="panel side" id="side" aria-labelledby="catalog-title"><header class="panel-head"><h2 id="catalog-title">互联网协议</h2></header></aside>
+    <section id="route-empty" class="panel route-empty" hidden><h2 id="route-title" tabindex="-1">互联网协议</h2><ol id="route-courses" class="courses"></ol><p class="empty" id="route-no-results" hidden>没有匹配的结果。</p><a href="#/" id="back-catalog" hidden>返回目录</a></section>
+    <section class="panel stage" aria-label="主舞台">
+      <header class="panel-head"><div class="views" role="group" aria-label="视图"><button id="show-network" aria-pressed="true">网络</button><button id="show-sequence" aria-pressed="false">时序</button><button id="show-packet" aria-pressed="false">数据包检查器</button></div></header>
+      <div id="canvas" class="canvas">
+        <svg id="network-svg" viewBox="0 0 760 460" role="group" aria-label="网络图">
+          <g id="cables"></g>
+          <g id="devices"></g>
+          <g id="packet-dots"></g>
+        </svg>
+        <output id="scene-event" hidden></output>
+        <template id="packet-template"><svg><g>
+          <circle class="arrival" fill="none" stroke="var(--kind)" stroke-width="2" opacity="0" pointer-events="none"/>
+          <path class="packet-drop" d="m-5-5 10 10m0-10-10 10" stroke="var(--kind)" stroke-width="2" pointer-events="none" hidden/>
+          <g class="packet" visibility="hidden" tabindex="-1" role="button" aria-label="数据包检查器">
+            <g class="packet-glyph"><circle class="trail" r="2.5" opacity=".43"/><circle class="trail" r="1.8" opacity=".30"/><circle class="trail" r="1.2" opacity=".21"/><circle class="halo" r="9" opacity=".18"/><circle class="head" r="4.4"/></g>
+            <g class="packet-badge" transform="translate(0 -13)"><rect class="packet-body" rx="2"/><rect class="packet-band" height="15" rx="2"/><path class="packet-lock" d="M-2-2v-2a2 2 0 0 1 4 0v2M-3-2h6v5h-6z"/><text class="packet-tag"></text><text class="packet-label"><tspan x="0"></tspan><tspan x="0" dy="11"></tspan></text></g>
+          </g>
+        </g></svg></template>
+      </div>
+      <div id="sequence" class="sequence" hidden></div>
+      <div id="packet-view" class="packet-view" aria-label="数据包检查器" hidden>
+        <div class="frame-head" id="frame-head"></div><div id="segment-tabs" hidden></div><div class="layers" id="layers" aria-label="报文封装层"></div>
+        <div class="inspector"><div class="fields" id="fields" aria-label="报文字段"></div><div class="dump" id="dump" aria-label="十六进制和 ASCII"></div></div>
+      </div>
+    </section>
+    <aside class="panel knowledge" aria-labelledby="knowledge-title">
+      <header class="panel-head"><h2 id="knowledge-title" tabindex="-1">协议概览</h2><button type="button" id="show-overview" hidden>概览</button></header>
+      <section id="overview-card"></section>
+      <section id="detail-card" hidden><div aria-live="polite" aria-atomic="true"><span class="stamp" id="step-stamp"></span><h3 id="step-title"></h3><p class="subtitle" id="step-subtitle"></p><p id="step-text"></p></div><dl id="step-facts" class="facts"></dl></section>
+    </aside>
+    <section class="panel flow" aria-labelledby="flow-title">
+      <header class="panel-head"><h2 id="flow-title">数据包流</h2><ul class="packet-key" id="packet-key" aria-label="颜色图例"></ul><div class="playback"><select id="rate" aria-label="播放速度"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select><button id="prev" aria-label="上一步" title="上一步">◀</button><button class="primary" id="play">播放</button><button id="next" title="一次一个数据包">单步</button><button id="reset" aria-label="重置" title="重置">↺</button></div></header>
+      <div class="log" id="log" tabindex="0" aria-label="报文表格"><table><thead><tr><th scope="col">序号</th><th scope="col">时间</th><th scope="col">源地址</th><th scope="col">目的地址</th><th scope="col" data-link-address hidden>源 MAC</th><th scope="col" data-link-address hidden>目的 MAC</th><th scope="col">协议</th><th scope="col">信息</th><th scope="col">大小</th></tr></thead><tbody id="rows"></tbody></table></div>
+    </section>
+  </main>
+</div>
+<dialog id="drawer" aria-labelledby="drawer-title"><header class="panel-head"><h2 id="drawer-title">互联网协议</h2><button id="close-catalog" aria-label="关闭协议列表">×</button></header></dialog>
+<div class="catalog" id="catalog" hidden><nav class="filter" id="filters" aria-label="协议分类"></nav><ol class="courses" id="courses"></ol><p class="empty" id="no-results" aria-live="polite" hidden>没有匹配的结果。</p></div>
+<script type="module" src="/main.js"></script>
+</html>

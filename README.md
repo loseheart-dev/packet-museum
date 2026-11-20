@@ -33,6 +33,8 @@
 
 ## 本地运行
 
+直接用浏览器打开根目录的 `index.html` 即可查看；修改源码后运行 `npm run build:standalone` 更新它。
+
 需要 Node.js 20 及以上。
 
 ```bash
