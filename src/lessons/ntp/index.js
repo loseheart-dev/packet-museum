@@ -1,5 +1,6 @@
 import { addresses, frameBytes } from './frames.js';
 import { overview, outro, steps } from './copy.js';
+import { inspectNTP } from './parse.js';
 
 const nodes = [
   { id: 'client', label: '客户端', kind: 'pc', x: 130, y: 320 },
@@ -17,11 +18,11 @@ const links = [
 const path = nodes.map(({ id }) => id);
 const frames = [
   {
-    id: 'ntp-1', path, bytes: frameBytes(false), protocol: 'NTP', time: '0.000s',
+    id: 'ntp-1', path, bytes: frameBytes(false), inspect: inspectNTP, protocol: 'NTP', time: '0.000s',
     category: 'request', summary: 'NTP Version 3, client', badge: ['T1 09:40:59.750'], leadMs: 900, holdMs: 1400,
   },
   {
-    id: 'ntp-2', path: path.toReversed(), bytes: frameBytes(true), protocol: 'NTP', time: '0.012s',
+    id: 'ntp-2', path: path.toReversed(), bytes: frameBytes(true), inspect: inspectNTP, protocol: 'NTP', time: '0.012s',
     category: 'answer', summary: 'NTP Version 3, server', badge: ['T2 09:41:00.012000', 'T3 09:41:00.012100'], leadMs: 900, holdMs: 2100,
   },
 ];

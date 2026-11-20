@@ -1,8 +1,18 @@
-import { ipText, Reader } from '../../lib/bytes/core.js';
+import { inspectFrame } from '../../lib/bytes/index.js';
+import { ipText, Reader, requireBytes } from '../../lib/bytes/core.js';
 import { ntpEpoch } from './frames.js';
 
+export function inspectNTP({ bytes }) {
+  const decoded = inspectFrame({ bytes });
+  const payload = decoded.layers.at(-1);
+  requireBytes(decoded.layers.at(-2)?.label === 'UDP' && payload.label === '载荷', 'NTP 缺少 UDP 载荷');
+  const { offset, length } = payload;
+  decoded.layers[decoded.layers.length - 1] = parseNTP(bytes.subarray(offset, offset + length), offset);
+  return decoded;
+}
+
 // shortcut: only the 48-byte lesson header in NTP era 0; extend when captures include extensions or other eras.
-export function parseNTP(bytes, offset = 0) {
+function parseNTP(bytes, offset) {
   const r = new Reader(bytes, offset, 'NTP', 'dns');
   const millisecond = n => n ? `${(n * 1000 / 65536).toFixed(1)} ms` : '0';
   r.number('闰秒指示、版本、模式', 1, n => `${n >> 6}, ${n >> 3 & 7}, ${n & 7}`);

@@ -3,18 +3,17 @@ import { test } from 'node:test';
 import { inspectFrame } from '../../lib/bytes/index.js';
 import { delay, offset, t4 } from './frames.js';
 import lesson from './index.js';
-import { parseNTP } from './parse.js';
 
 test('NTP 用两个 90 字节帧交换 T1、T2、T3，T4 由客户端记录', () => {
   const [request, answer] = lesson.frames.map(frame => {
     assert.equal(frame.bytes.length, 90);
     const { layers } = inspectFrame(frame);
-    const udp = new DataView(frame.bytes.buffer, layers[2].offset, layers[2].length);
+    assert.deepEqual(layers.map(layer => layer.label), ['Ethernet II', 'IPv4', 'UDP', 'NTP']);
+    const udp = new DataView(frame.bytes.buffer, frame.bytes.byteOffset + layers[2].offset, layers[2].length);
     assert.equal(udp.getUint16(0), 123);
     assert.equal(udp.getUint16(2), 123);
-    const { offset, length } = layers.at(-1);
-    const layer = parseNTP(frame.bytes.subarray(offset), offset);
-    assert.equal(length, 48);
+    const layer = layers.at(-1);
+    assert.equal(layer.offset, 42);
     assert.equal(layer.length, 48);
     return Object.fromEntries(layer.fields.map(({ label, value }) => [label, value]));
   });
