@@ -18,7 +18,13 @@ const layersByFormat = {
 };
 const applications = ['dns', 'dhcp', 'http', 'tls', 'handshake', 'raw'];
 
-export function inspectFrame({ bytes, format = 'ethernet', application, addresses, fieldNames, relativeTo }) {
+export function inspectFrame(frame) {
+  // 课程可在帧上声明 inspect(frame) 自行解析共享字节库尚未支持的协议
+  if (typeof frame?.inspect === 'function') return frame.inspect(frame);
+  return inspectBuiltin(frame);
+}
+
+function inspectBuiltin({ bytes, format = 'ethernet', application, addresses, fieldNames, relativeTo }) {
   requireBytes(bytes instanceof Uint8Array && bytes.length > 0, '帧必须是非空 Uint8Array');
   requireBytes(!application || applications.includes(application), `未知应用协议: ${application}`);
   const layers = [];

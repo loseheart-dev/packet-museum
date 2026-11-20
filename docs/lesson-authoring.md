@@ -93,3 +93,7 @@ npm run dev
 ```
 
 打开 `/packet-museum/#/lesson/<id>`；可用 `/步骤ID` 后缀静态定位，或 `#/` 返回目录。检查预览、播放与暂停、上一步与单步、时序选包、字段高亮和 390 像素下的目录抽屉。`npm test` 选 `node --test`，无需额外测试依赖；自动发现所有课程，检查字节覆盖、层长度、IPv4/UDP/TCP 校验和、步骤文案和节点/帧引用，且运行可选的 `test.mjs`。
+
+## 课程自定义报文解析
+
+字节库不支持的协议，可在帧对象上声明 `inspect(frame)`，返回与 `inspectFrame` 相同结构（`layers`、`src`、`dst` 等）。`inspectFrame` 会优先调用它。
