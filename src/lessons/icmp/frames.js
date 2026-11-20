@@ -1,4 +1,4 @@
-import { concat, ethernet, ipv4, text, udp, uint } from '../../lib/bytes/index.js';
+import { concat, ethernet, inspectFrame, ipv4, text, udp, uint } from '../../lib/bytes/index.js';
 import { checksum, decode, numberHex, Reader, requireBytes, size } from '../../lib/bytes/core.js';
 
 export const addresses = { client: '192.168.1.10', router: '192.168.1.1', web: '203.0.113.10', isp: '198.51.100.1' };
@@ -41,17 +41,28 @@ export const frames = [
 ].map(([id, time, path, category, summary, badgeLabel, badge, payload], i) => {
   // The frames are viewed on the client’s LAN, including the remote replies.
   const outgoing = path[0] === 'client';
+  const isUDP = id === 'udp-probe';
   return {
     id, time, path, category, summary, badgeLabel, badge, leadMs: i === 0 ? 2350 : 900,
-    protocol: id === 'udp-probe' ? 'UDP' : 'ICMP',
+    protocol: isUDP ? 'UDP' : 'ICMP',
+    ...(isUDP ? {} : { inspect: inspectICMP }),
     bytes: ethernet({ src: outgoing ? clientMac : routerMac, dst: outgoing ? routerMac : clientMac, payload }),
   };
 });
 
+function inspectICMP({ bytes }) {
+  const frame = inspectFrame({ bytes });
+  const [, header, payload] = frame.layers;
+  requireBytes(header?.label === 'IPv4' && payload?.label === '载荷' && bytes[header.offset + 9] === 1 &&
+    !(bytes[header.offset + 6] & 0x3f || bytes[header.offset + 7]), 'ICMP 检查需要未分片的 IPv4 报文');
+  frame.layers[2] = parseICMP(bytes.subarray(payload.offset, payload.offset + payload.length), payload.offset);
+  return frame;
+}
+
 const types = { 0: '回显应答', 3: '目的不可达（端口不可达）', 8: '回显请求', 11: '超时（TTL 降到 0）' };
 
-// shortcut: decode the ICMPv4 types used here; extend when the shared inspector supports ICMP.
-export function parseICMP(bytes, offset) {
+// shortcut: decode only this lesson’s ICMPv4 message types; extend when adding other codes.
+function parseICMP(bytes, offset) {
   const r = new Reader(bytes, offset, 'ICMP', 'ip');
   const type = r.number('类型', 1, n => `${n} (${types[n]})`);
   const code = r.number('代码', 1);
@@ -64,7 +75,7 @@ export function parseICMP(bytes, offset) {
     r.slice('数据', r.rest(), decode);
   } else {
     r.number('未使用', 4);
-    const quote = r.slice('原始数据包', r.rest(), size);
+    const quote = r.slice('原始数据包', r.rest(), bytes => size(bytes.length));
     const headerLength = (quote[0] & 15) * 4;
     requireBytes(quote[0] >> 4 === 4 && headerLength >= 20 && quote.length >= headerLength + 8 &&
       checksum(quote.subarray(0, headerLength)) === 0, 'ICMP 引用的 IPv4 头部无效');
