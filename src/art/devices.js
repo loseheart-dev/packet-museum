@@ -9,12 +9,18 @@ export const deviceDefs = hardware.replace('</defs>', `
 </defs>`);
 
 const rack = ['rack', 'm-39-17 50 25 46-23-50-25Z', 32];
+const edgeRouter = ['edge-router', 'm-48-13 55 27.5 42-21-55-27.5Z', 32];
 const hardwareKinds = {
   pc: ['pc', 'm-69-11 77 38.5 75-37.5-77-38.5Z', 45],
+  laptop: ['laptop', 'm-59-21 75 37.5 43-21.5-75-37.5Z', 34],
   router: ['modem', 'm-40-12 50 25 42-21-50-25Z', 32],
+  'edge-router': edgeRouter, 'multicast-router': edgeRouter,
   switch: ['switch', 'm-52-12 55 27.5 51-25.5-55-27.5Z', 31],
   cloud: ['cloud', 'm-56 9 42 23 73-27-44-23Z', 39],
+  camera: ['camera', 'm-27-6 31 15.5 30-15-31-15.5Z', 28],
+  'tv-box': ['tv-box', 'm-45-16 54 27 38-19-54-27Z', 30],
   server: rack, 'dns-server': rack, 'dhcp-server': rack, 'web-server': rack,
+  'ntp-server': rack, 'stun-server': rack, 'sip-server': rack, 'ingest-server': rack,
 };
 
 export function deviceArt(kind, scale = 1) {

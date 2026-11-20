@@ -5,7 +5,8 @@ import { catalog } from '../src/catalog.js';
 import { inspectFrame, reassembleTCP } from '../src/lib/bytes/index.js';
 
 const root = new URL('../src/lessons/', import.meta.url);
-const kinds = ['pc', 'router', 'switch', 'cloud', 'server', 'dns-server', 'dhcp-server', 'web-server'];
+const kinds = ['pc', 'laptop', 'router', 'edge-router', 'multicast-router', 'switch', 'cloud', 'camera', 'tv-box',
+  'server', 'dns-server', 'dhcp-server', 'web-server', 'ntp-server', 'stun-server', 'sip-server', 'ingest-server'];
 const nonempty = value => typeof value === 'string' && value.trim().length > 0;
 const unique = list => assert.equal(new Set(list).size, list.length, 'ID 重复');
 const slug = id => assert.match(id, /^[a-z][a-z0-9-]*$/);
@@ -19,7 +20,7 @@ for (const { name } of dirs) {
     const { meta, overview, outro, nodes, links, steps, frames, sequenceNodes, viewBox } = lesson;
     assert.equal(meta.id, name);
     slug(name);
-    assert(catalog.some(entry => entry.id === name), '不是一期目录的课程 ID');
+    assert(catalog.some(entry => entry.id === name), '不是目录中的课程 ID');
     assert(nonempty(meta.title) && nonempty(meta.subtitle));
     assert([1, 2, 3].includes(meta.group) && Number.isInteger(meta.order) && [1, 2, 3, 4, 5, 6, 7].includes(meta.layer));
     assert(nonempty(overview.title) && nonempty(overview.text));

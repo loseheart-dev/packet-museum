@@ -1,6 +1,6 @@
 # 编写课程
 
-一期每门课只新增 `src/lessons/<id>/`。`src/main.js` 用 `import.meta.glob` 自动发现 `index.js`，同 ID 的 `meta` 会替换 `src/catalog.js` 的占位数据；不改目录清单、路由、引擎和公共测试。
+每门课只新增 `src/lessons/<id>/`。`src/main.js` 用 `import.meta.glob` 自动发现 `index.js`，同 ID 的 `meta` 会替换 `src/catalog.js` 的占位数据；不改目录清单、路由、引擎和公共测试。
 
 ```text
 src/lessons/dns/    # 完整示例：5 步、8 帧
@@ -30,9 +30,11 @@ src/lessons/dns/    # 完整示例：5 步、8 帧
 
 默认图例类别是 `packet`（报文）；自定义图例后为每帧指定 `category`，或者保留 `packet`。时间标签例如 `0.022s`，与播放时间无关。时序使用 `path` 的首末节点，拓扑逐跳播放；显示的源/目的地址从字节解析，裸应用层消息才回退到节点名称。各类 ID 均为短小写 slug；每帧只引用一次，路径的相邻节点必须连通。逐跳转发若字节改变，则用不同帧表示。
 
-设备类型：`pc`（CRT 与机箱）、`router`、`switch`、`cloud`、`server`、`dns-server`、`dhcp-server`、`web-server`；服务器复用机架图，靠节点名称区分。默认全景下建议给硬件轮廓与标签留足边距，避免把节点原点紧贴边缘。
+设备类型：`pc`（CRT 与机箱）、`laptop`、`camera`、`tv-box`（电视与机顶盒）、`router`（家用路由器）、`edge-router`（自治系统边界路由器）、`multicast-router`（运营商组播路由器，复用边界路由器图）、`switch`、`cloud`。`server`、`dns-server`、`dhcp-server`、`web-server`、`ntp-server`、`stun-server`、`sip-server`、`ingest-server`（推流接入）复用机架图，靠节点名称区分。默认全景下建议给硬件轮廓与标签留足边距，避免把节点原点紧贴边缘。
 
 ## DNS 例子与字节库
+
+课程需要但字节库尚未提供的协议构造或解析（例如 ICMP、IPv6、IGMP、NTP、BGP、QUIC、WebSocket、RTP/RTCP、STUN、SIP/SDP、RTSP、RTMP），先在 `src/lessons/<id>/` 内实现；汇报时列出建议上提到公共字节库的部分。
 
 完整实现：[拓扑与步骤](../src/lessons/dns/index.js)、[报文生成](../src/lessons/dns/frames.js)、[与样稿 A 对照的测试](../src/lessons/dns/test.mjs)。DNS 用四个事务还原递归查询、两份引荐、权威回答和最终缓存；根引荐包含 13 个 NS 和 IPv4/IPv6 胶水。下例展示最后的应答如何嵌入 Ethernet 帧：
 

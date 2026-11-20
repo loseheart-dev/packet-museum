@@ -16,6 +16,12 @@
     <path d="m-45-15 55 27.5 20-10-55-27.5zm0 0v4L10 16.5v-4m0 4L30 6.5v-4" fill="url(#plastic)"/>
     <path d="m-36-16 47 23.5m-42-26 46 23m-41-25.5 46 23" stroke="#74664a" stroke-dasharray="2.4 1.4"/>
   </g>
+  <g id="laptop" stroke="#544734" stroke-width="1.3" stroke-linejoin="round">
+    <path d="M-32-83l74 37 5-2.5-74-37Z" fill="#eddfb5"/><path d="M42-46l5-2.5v44L42-2Z" fill="#95805c"/>
+    <g transform="matrix(1 .5 0 1 -32 -83)"><rect width="74" height="44" rx="2" fill="url(#plastic)"/><rect x="5" y="5" width="64" height="32" rx="2" fill="url(#glass)"/><rect x="6" y="6" width="62" height="30" rx="2" fill="url(#raster)" stroke="none"/><path d="M11 11h30l-19 4H11Z" fill="#fff2be" opacity=".22" stroke="none"/><path d="m11 19 4 3-4 3m7 0h11m-18 5h23" fill="none" stroke="var(--phosphor)" stroke-width=".95"/></g>
+    <path d="M-58-26l74 37v5l-74-37Z" fill="#a08a65"/><path d="m16 11 26-13v5L16 16Z" fill="#85714f"/><path d="m-58-26 74 37 26-13-74-37Z" fill="url(#plastic)"/>
+    <path d="m-34-35 65 32-13 6-65-32Z" fill="#837454"/><path d="m-37-31 61 30m-66-28 62 31" stroke="#e1cc99" stroke-dasharray="2 1.4"/><path d="m-29-18 17 8-7 3-17-8Z" fill="#b49d70"/>
+  </g>
   <g id="modem" stroke="#5b4a35" stroke-width="1.4" stroke-linejoin="round">
     <path d="M-40-33 8-9 42-26-6-50Z" fill="#eeddb3"/><path d="M8-9l34-17v18L8 9Z" fill="#95805c"/>
     <g transform="matrix(1 .5 0 1 -40 -33)"><rect width="48" height="18" rx="1" fill="url(#plastic)"/><rect x="5" y="5" width="21" height="8" rx="1" fill="#4f4b39"/><path d="M30 8h13m-13 3h13" stroke-dasharray="1 2"/><circle cx="10" cy="9" r="1.6" fill="#98c97d"/><circle cx="16" cy="9" r="1.4" fill="#dcb670"/></g>
@@ -23,10 +29,29 @@
     <path d="M24-32v-33" stroke="#5b513d" stroke-width="3" stroke-linecap="round"/><circle cx="24" cy="-32" r="2.7" fill="#706247"/>
   </g>
   <g id="tray"><rect width="45" height="13" rx="1" fill="#38463e"/><rect x="3" y="3" width="28" height="7" fill="#1f2823"/><path d="M5 5h24m-24 3h24" stroke="#8b9f8a" stroke-width=".75" stroke-dasharray="1 1.65"/><path d="M34 4h4v5h-4Z" fill="#55665a"/><circle cx="41" cy="4" r="1" fill="#acd780"/><circle cx="41" cy="8" r=".8" fill="#dbc075"/></g>
+  <g id="edge-router" stroke="#29332d" stroke-width="1.3" stroke-linejoin="round">
+    <path d="M-46-44 8-17 45-35.5-9-62.5Z" fill="#879286"/><path d="M8-17l37-18.5v27L8 10Z" fill="#48594e"/>
+    <path d="m-34-44 18-9m-14 11 18-9m-14 11 18-9m-14 11 18-9m-14 11 18-9m17 29 19-9.5m-19 15 19-9.5" fill="none" stroke="#596b5f"/>
+    <g transform="matrix(1 .5 0 1 -46 -44)"><rect width="54" height="27" rx="1" fill="url(#steel)"/><use href="#tray" x="4.5" y="2"/><path d="M5 19h18v4H5Z" fill="#26322c"/><path d="M30 21h17" stroke="#a1b28d" stroke-dasharray="1 2"/></g>
+  </g>
   <g id="rack" stroke="#29332d" stroke-width="1.3" stroke-linejoin="round">
     <path d="M-39-78 11-53 42-68.5-8-93.5Z" fill="#879286"/><path d="M11-53l31-15.5v60L11 7Z" fill="#48594e"/>
     <path d="m-30-77 40 20 23-11.5-41-20.5Z" fill="#67766a" stroke="#a2aa94"/><path d="M18-47l17-8.5v35l-17 8.5Z" fill="#35433c"/><path d="m21-44 11-5.5m-11 10 11-5.5m-11 10 11-5.5" stroke="#708175"/>
     <g transform="matrix(1 .5 0 1 -39 -78)"><rect width="50" height="60" fill="url(#steel)"/><use href="#tray" x="2.5" y="3"/><use href="#tray" x="2.5" y="17"/><use href="#tray" x="2.5" y="31"/><use href="#tray" x="2.5" y="45"/><path d="M3 60v3h6v-3m32 0v3h6v-3" fill="#29332d"/></g>
+  </g>
+  <g id="camera" stroke="#544734" stroke-width="1.3" stroke-linejoin="round">
+    <path d="m-22-6 26 13 25-12-26-13Z" fill="#8d846a"/><path d="m-22-6 26 13 25-12v4L4 11-22-2Z" fill="#665b46"/>
+    <path d="m0-33 9-4v25L0-8Z" fill="#879286"/><path d="m9-37 5 3v25l-5-3Z" fill="#48594e"/>
+    <path d="m-29-65 28 14 35-17.5-28-14Z" fill="#eeddb3"/><path d="m-1-51 35-17.5v24L-1-27Z" fill="#95805c"/>
+    <g transform="matrix(1 .5 0 1 -29 -65)"><rect width="28" height="24" rx="2" fill="url(#plastic)"/><circle cx="13" cy="12" r="9" fill="#3b4740"/><circle cx="13" cy="12" r="5.5" fill="#7a9d8c"/><circle cx="13" cy="12" r="3" fill="#293832"/><circle cx="11.5" cy="10.5" r="1" fill="#d1e6c4" stroke="none"/><circle cx="24" cy="5" r="1.1" fill="#acd780"/></g>
+    <path d="m8-51 18-9m-18 13 18-9m-18 13 18-9" stroke="#6d5c43" stroke-dasharray="2 1.6"/>
+  </g>
+  <g id="tv-box" stroke="#544734" stroke-width="1.3" stroke-linejoin="round">
+    <path d="M-42-27 10-1 45-18.5-7-44.5Z" fill="#879286"/><path d="M10-1l35-17.5v10L10 9Z" fill="#48594e"/>
+    <g transform="matrix(1 .5 0 1 -42 -27)"><rect width="52" height="10" rx="1" fill="url(#steel)"/><rect x="5" y="2.5" width="19" height="5" rx="1" fill="#202b23"/><path d="M8 5h7" stroke="#a5c780" stroke-dasharray="1.5 1"/><circle cx="45" cy="5" r="1.4" fill="#acd780"/></g>
+    <path d="m-13-34 23 11.5 15-7.5-23-11.5Z" fill="#9a8968"/>
+    <path d="m-33-75 51 25.5 17-8.5-51-25.5Z" fill="#f0dfb3"/><path d="m18-49.5 17-8.5v35l-17 8.5Z" fill="#95805c"/>
+    <g transform="matrix(1 .5 0 1 -33 -75)"><rect width="51" height="35" rx="3" fill="url(#plastic)"/><rect x="4" y="4" width="34" height="27" rx="4" fill="#5b5240"/><rect x="7" y="7" width="28" height="21" rx="3" fill="url(#glass)" stroke="none"/><rect x="7" y="7" width="28" height="21" rx="3" fill="url(#raster)" stroke="none"/><path d="m18 12 9 5.5-9 5.5Z" fill="var(--phosphor)" stroke="none"/><circle cx="44" cy="10" r="2" fill="#7b6a4b"/><path d="M41 20h6m-6 3h6m-6 3h6"/></g>
   </g>
   <path id="cloud" d="M-43 11a15 15 0 0 1-3-29 16 16 0 0 1 22-17 22 22 0 0 1 40-11 19 19 0 0 1 26 17 21 21 0 0 1-4 41Z"/>
 </defs>
