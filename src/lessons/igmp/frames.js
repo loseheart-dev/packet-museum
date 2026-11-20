@@ -1,7 +1,8 @@
-import { concat, ethernet, ipv4, ipv4Address, udp, uint } from '../../lib/bytes/index.js';
+import { concat, ethernet, inspectFrame, ipv4, ipv4Address, udp, uint } from '../../lib/bytes/index.js';
 import { checksum, ipText, macText, numberHex, Reader, requireBytes } from '../../lib/bytes/core.js';
 
 const group = '233.252.0.1', allHosts = '224.0.0.1', allRouters = '224.0.0.2';
+const routerAlert = uint(0x94040000, 4);
 const lanMac = '00:00:5e:00:53:01', providerMac = '00:00:5e:00:53:fe';
 const hosts = {
   stb: ['192.168.1.30', '00:00:5e:00:53:30'],
@@ -24,7 +25,7 @@ function membership(type, member, response) {
 }
 
 const messageTypes = { 0x11: 'Membership Query', 0x16: 'Membership Report', 0x17: 'Leave Group' };
-export function parseMembership(bytes, offset) {
+function parseMembership(bytes, offset) {
   // shortcut: only the three IGMPv2 messages used in this lesson; dispatch by version if IGMPv3 is added.
   const reader = new Reader(bytes, offset, 'IGMPv2', 'ip');
   const type = reader.number('类型', 1, n => `${numberHex(n, 2)} (${messageTypes[n]})`);
@@ -37,8 +38,39 @@ export function parseMembership(bytes, offset) {
   return reader.layer();
 }
 
+function parseChannel(bytes, offset) {
+  // shortcut: decode only the first header shown by the reference; expand for real captures.
+  const reader = new Reader(bytes, offset, 'MPEG-TS', 'dns');
+  for (let i = 0; i < 7; i++) requireBytes(bytes[i * 188] === 0x47, 'MPEG-TS 同步字节错误');
+  reader.number('同步字节', 1, n => numberHex(n, 2));
+  reader.number('标志、PID', 2, n => `${numberHex(n)}（PID ${n & 0x1fff}）`);
+  reader.number('负载、计数器', 1, n => `${numberHex(n, 2)}（计数器 ${n & 15}）`);
+  reader.slice('视频', 184, () => '184 字节（合成）');
+  reader.slice('更多包', 6 * 188, () => '6 × 188 字节（合成）');
+  reader.end();
+  return reader.layer();
+}
+
+function inspectMulticast({ bytes, protocol }) {
+  const result = inspectFrame({ bytes });
+  const { layers } = result;
+  const igmp = protocol === 'IGMPv2';
+  const ip = layers[1], slot = igmp ? 2 : 3, payload = layers[slot];
+  requireBytes(ip?.label === 'IPv4' && bytes[ip.offset + 9] === (igmp ? 2 : 17) && payload?.label === '载荷', '组播帧的协议封装不匹配');
+  const content = bytes.subarray(payload.offset, payload.offset + payload.length);
+  layers[slot] = igmp ? parseMembership(content, payload.offset) : parseChannel(content, payload.offset);
+  if (igmp) {
+    ip.fields.find(({ offset }) => offset === ip.offset + 9).value = '2 · IGMP';
+    const option = ip.fields.at(-1);
+    if (option.offset === ip.offset + 20 && option.length === routerAlert.length && routerAlert.every((n, i) => n === bytes[option.offset + i])) {
+      option.label = 'Router Alert 选项';
+    }
+  }
+  return result;
+}
+
 const makeFrame = (id, path, time, category, protocol, summary, badge, bytes) => ({
-  id: `igmp-${id}`, path, time, category, protocol, summary, badge, bytes,
+  id: `igmp-${id}`, path, time, category, protocol, summary, badge, bytes, inspect: inspectMulticast,
 });
 function control(id, path, time, host, ipId, type, badge, response = 0, badgeLabel) {
   const [src, mac] = hosts[host];
@@ -50,7 +82,7 @@ function control(id, path, time, host, ipId, type, badge, response = 0, badgeLab
   const frame = makeFrame(id, path, time, query ? 'query' : 'membership', 'IGMPv2', summary, [badge],
     multicastFrame(src, dst, mac, { protocol: 2, id: ipId, ttl: 1,
       flags: host === 'client' ? 0 : 0x4000, dscp: host === 'client' ? 0 : 192,
-      options: uint(0x94040000, 4), payload: membership(type, member, response),
+      options: routerAlert, payload: membership(type, member, response),
     }));
   return { ...frame, badgeLabel: badgeLabel ?? (query ? '查询' : type === 0x17 ? '离开' : '报告') };
 }
