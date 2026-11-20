@@ -1,4 +1,5 @@
 import { concat, ethernet, ipv4, ipv4Address, tcp, uint } from '../../lib/bytes/index.js';
+import { inspectBGP } from './inspect.js';
 
 const octets = (...bytes) => Uint8Array.of(...bytes);
 const marker = new Uint8Array(16).fill(0xff);
@@ -36,9 +37,9 @@ function frame(id, from, to, path, ms, category, label, summary, { seq, ack, ipI
     ack: ack ? to.isn + ack : 0, flags: flags[label] ?? 0x18, window: syn ? reply && !web ? 65160 : 64240 : 501, options, payload });
   const bytes = ethernet({ src: mac(from.mac[0]), dst: mac(from.mac[1]),
     payload: ipv4({ src, dst, protocol: 6, ttl: web ? reply ? 52 : 128 : 1, id: ipId, payload: segment }) });
-  // shortcut: the shared inspector shows raw BGP payloads until it supports BGP field decoding.
   return { id, path, bytes, protocol: payload ? 'BGP' : 'TCP', time: `${(ms / 1000).toFixed(3)}s`, category,
-    summary, badgeLabel: label, badge, leadMs, holdMs, relativeTo: [from.isn, ack ? to.isn : null] };
+    summary, badgeLabel: label, badge, leadMs, holdMs, relativeTo: [from.isn, ack ? to.isn : null],
+    ...(payload && { inspect: inspectBGP }) };
 }
 
 const peer = ['isp', 'transit'], reversePeer = ['transit', 'isp'], origin = ['hosting', 'transit'];
